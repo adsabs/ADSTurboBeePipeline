@@ -1,31 +1,24 @@
 [![Build Status](https://travis-ci.org/adsabs/adstb.svg)](https://travis-ci.org/adsabs/adstb)
 [![Coverage Status](https://coveralls.io/repos/adsabs/adstb/badge.svg)](https://coveralls.io/r/adsabs/adstb)
 
-# adstb
+# ADSTurboBee
 
-A generic template for building ADS pipeline applicaitons.
+Pipeline (set of workers) for populating TurboBee (store).
 
-To build your own worker, first clone this repository and rename stuff.
-
-1. git clone git@github.com:adsabs/adstb.git
-2. `init.sh ADSMyNewName`
-
-Then commit the results into a new repository. (and remove this section from the README)       
        
-
-## Dev Dependencies
-
-For database/rabbitmq and others, please use: https://github.com/adsabs/devtools
-
 
 ## Short Summary
 
-This pipeline is doing XYZ.
 
 
 ## Queues and objects
 
-    - some-queue: it receives a silly message with a name in it and saves it into a database
+    - bumblebee
+        Messages that go into the queue are consumed by workers that update static pages
+    - user
+        Messages from this queue are consumed by workers that update user specific content (it is exactly parallel to bumblebee, but deals with different content; api requests etc). 
+
+
 
 ## Setup (recommended)
 
@@ -46,4 +39,5 @@ Always write unittests (even: always write unitests first!). Travis will run aut
 
 ## Maintainer(s)
 
-Name, Name        
+Roman
+
