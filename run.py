@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 
-Main script for controlling the ADSWorker
+Main script for controlling the adstb
 """
 
 __author__ = ''
@@ -17,11 +17,11 @@ import time
 import pika
 import argparse
 import json
-from ADSWorker import app
-from ADSWorker.pipeline.example import ExampleWorker
-from ADSWorker.pipeline import generic
-from ADSWorker.pipeline import pstart
-from ADSWorker.utils import setup_logging
+from adstb import app
+from adstb.pipeline.example import ExampleWorker
+from adstb.pipeline import generic
+from adstb.pipeline import pstart
+from adstb.utils import setup_logging
 
 logger = setup_logging(__file__, __name__)
 
@@ -61,7 +61,7 @@ def run_example(claims_file, queue='example', **kwargs):
     logger.info('Loading records from: {0}'.format(claims_file))
     worker = ExampleWorker(params={
                         'publish': queue,
-                        'exchange': app.config.get('EXCHANGE', 'ADSWorker-exchange')
+                        'exchange': app.config.get('EXCHANGE', 'adstb-exchange')
                     })
     i = 0
     worker.connect(app.config.get('RABBITMQ_URL'))

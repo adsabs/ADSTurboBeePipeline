@@ -1,13 +1,13 @@
-[![Build Status](https://travis-ci.org/adsabs/ADSWorker.svg)](https://travis-ci.org/adsabs/ADSWorker)
-[![Coverage Status](https://coveralls.io/repos/adsabs/ADSWorker/badge.svg)](https://coveralls.io/r/adsabs/ADSWorker)
+[![Build Status](https://travis-ci.org/adsabs/adstb.svg)](https://travis-ci.org/adsabs/adstb)
+[![Coverage Status](https://coveralls.io/repos/adsabs/adstb/badge.svg)](https://coveralls.io/r/adsabs/adstb)
 
-# ADSWorker
+# adstb
 
 A generic template for building ADS pipeline applicaitons.
 
 To build your own worker, first clone this repository and rename stuff.
 
-1. git clone git@github.com:adsabs/ADSWorker.git
+1. git clone git@github.com:adsabs/adstb.git
 2. `init.sh ADSMyNewName`
 
 Then commit the results into a new repository. (and remove this section from the README)       
@@ -29,7 +29,7 @@ This pipeline is doing XYZ.
 
 ## Setup (recommended)
 
-    `$ cd ADSWorker/`
+    `$ cd adstb/`
     `$ virtualenv python`
     `$ source python/bin/activate`
     `$ pip install -r requirements.txt`

@@ -15,12 +15,10 @@ read -p "Replace ADSWorker with '$newname'? [y]:" answer
 if [ "${answer:-y}" == "y" ]; then
      search_replace 'ADSWorker' $newname './ADSWorker'
      search_replace 'ADSWorker' $newname './alembic'
-     search_replace 'ADSWorker' $newname './manifests'
      search_replace 'ADSWorker' $newname './*.ini'
      search_replace 'ADSWorker' $newname './*.md'
      search_replace 'ADSWorker' $newname './*.txt'
      search_replace 'ADSWorker' $newname './*.py'
-     search_replace 'ADSWorker' $newname './Vagrantfile'
 
      mv ADSWorker $newname
 fi

@@ -47,7 +47,7 @@ def get_app_config(key):
     if opath not in sys.path:
         sys.path.insert(0, opath)
         
-    from ADSWorker import app
+    from adstb import app
     app.init_app()
     
     print 'Getting actual config for', key, app.config.get(key)
