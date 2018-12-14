@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.org/adsabs/adstb.svg)](https://travis-ci.org/adsabs/adstb)
-[![Coverage Status](https://coveralls.io/repos/adsabs/adstb/badge.svg)](https://coveralls.io/r/adsabs/adstb)
+[![Build Status](https://travis-ci.org/adsabs/ADSTurboBee.svg?branch=master)](https://travis-ci.org/adsabs/ADSTurboBee)
+[![Coverage Status](https://coveralls.io/repos/github/adsabs/ADSTurboBee/badge.svg)](https://coveralls.io/github/adsabs/ADSTurboBee)
 
 # ADSTurboBee
 
