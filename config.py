@@ -17,3 +17,5 @@ RABBITMQ_URL = 'amqp://guest:guest@localhost:6672/?' \
 LOGGING_LEVEL = 'DEBUG'
 
 
+# Access token to be used against ADS API
+API_TOKEN = 'empty'

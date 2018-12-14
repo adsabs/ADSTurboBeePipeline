@@ -6,7 +6,7 @@ from mock import patch
 import unittest
 from adstb import app, tasks
 from adstb.models import Base
-
+from adsmsg import TurboBeeMsg
 
 class TestWorkers(unittest.TestCase):
     
@@ -31,15 +31,21 @@ class TestWorkers(unittest.TestCase):
         tasks.app = self._app
 
 
-    def test_task_hello_world(self):
+    def test_task_harvest_bumblebee(self):
         
-        # just for illustration how to mock multiple objects in one go
-        with patch.object(self.app, 'close_app') as example_method, \
-            patch.object(tasks.logger, 'info') as logger:
+        
+        with patch.object(tasks.app, '_load_url', return_value = '<html>foo</html>') as loader, \
+            patch.object(tasks.task_output_results, 'delay') as next_task:
             
-            tasks.task_hello_world({'name': 'Elgar'})
-            self.assertTrue('Hello Elgar we have recorded' in logger.call_args[0][0])
             
+            msg = TurboBeeMsg(target='2019MNRAS.482.1872B')
+            tasks.task_harvest_bumblebee(msg)
+            self.assertTrue(next_task.called)
+            self.assertTrue(msg.value == "<html>foo</html>")
+            self.assertTrue(msg.updated.seconds > 0)
+            self.assertTrue(msg.expires.seconds >= msg.updated.seconds + 24*60*60)
+            self.assertTrue(msg.eol.seconds >= msg.updated.seconds + 24*60*60*30)
+            self.assertTrue(msg.ctype == msg.ContentType.html)
 
 
             
