@@ -17,7 +17,7 @@ COPY package.json /app
 
 # Install dependencies
 RUN npm install
-RUN npm i -g pm2
+#RUN npm i -g pm2
 
 COPY . /app
 

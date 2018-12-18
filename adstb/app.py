@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
+from adstb.exceptions import InvalidContent
 
 import requests
 
@@ -53,6 +54,7 @@ class ADSTurboBeeCelery(ADSCelery):
         # TODO: load the actual bbb webpage
         self.logger.info('Going to harvest: %s', url)
         html = self._load_url(message.target)
+        html = self._massage_page(message.target, html)
         
         # update tiemstamps
         message.set_value(html, message.ContentType.html)
@@ -64,7 +66,41 @@ class ADSTurboBeeCelery(ADSCelery):
     
     
     def _load_url(self, url):
-        pass
+        r = requests.post(self.conf.get('PUPPETEER_ENDPOINT', 'http://localhost:3001/scrape'),
+            data=[url])
+        r.raise_for_status()
+        return r.json()[url]
+
+    def _message_page(self, url, html):
+        # make sure we were given a valid page
+        if url not in html:
+            self.logger.debug('%s not found in html: %s...', url, html[0:500])
+            raise InvalidContent('Rejecting what was generated for: %s' % url)
+        
+        # modify the links on the page (well, clever method could modify all links, 
+        # but it might not catch scripts; so le'ts go brute force...)
+        text = html[0:300].lower()
+        head_start = text.index('<head')
+        if head_start == -1:
+            raise InvalidContent('Cannot find <head> element for: %s' % url)
+        
+        # find the closing bracket
+        i = head_start + 1
+        head_end = None
+        while i < len(text):
+            if text[i] == '>' and text[i-1] != '\':
+                head_end = i
+                break
+            i += 1
+
+        if not head_end:
+            raise InvalidContent('Cannot find closing tag of <head> element for: %s' % url)
+        
+        # insert base href
+        b = urlparse.urlparse(url)
+        base = '\n<base href="' + b.scheme + '//' + b.netloc + '" /base>\n'
+
+        return html[0:head_end] + base + html[head_end+1:]
 
 
     def extract_bibcode(self, url_or_target):

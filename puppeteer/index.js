@@ -17,11 +17,11 @@ app.get("/restart", async (req, res) => {
 });
 app.post("/scrape", async (req, res) => {
   
-  console.log(req.body, req.body.length);
+  //console.log(req.body, req.body.length);
   const data = {};
   for (var idx in req.body) {
     var url = req.body[idx];
-    console.log(url)
+    //console.log(url)
     try {
       data[url] = await runner.scrape(url);
     }

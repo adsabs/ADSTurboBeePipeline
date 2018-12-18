@@ -9,4 +9,6 @@ class ProcessingException(Exception):
     ErrorHandler."""
     pass
 
+class InvalidContent(Exception):
+    pass
         

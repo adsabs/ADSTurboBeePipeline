@@ -19,3 +19,7 @@ LOGGING_LEVEL = 'DEBUG'
 
 # Access token to be used against ADS API
 API_TOKEN = 'empty'
+
+
+# location of our mini-microservice for fetching HTML pages
+PUPPETEER_ENDPOINT = 'http://localhost:3001/scrape'
