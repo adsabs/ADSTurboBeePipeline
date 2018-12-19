@@ -20,5 +20,10 @@ LOGGING_LEVEL = 'DEBUG'
 API_TOKEN = 'empty'
 
 
-# location of our mini-microservice for fetching HTML pages
+# location of our mini-microservice for fetching HTML pages, it can be deployed
+# together with the pipeline (if using eb-deploy) or it can run somewhere else
 PUPPETEER_ENDPOINT = 'http://localhost:3001/scrape'
+
+
+# the turbobee-microservice that accepts objects that our pipelne generates
+UPDATE_ENDPOINT = 'https://api.adsabs.harvard.edu/v1/store'

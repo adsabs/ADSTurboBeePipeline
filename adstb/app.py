@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from adstb.exceptions import InvalidContent
+import urlparse
 
 import requests
 
@@ -62,16 +63,18 @@ class ADSTurboBeeCelery(ADSCelery):
         message.expires.seconds = message.updated.seconds + self.conf.get('BBB_EXPIRATION_SECS', 60*60*24) # 24h later
         message.eol.seconds = message.updated.seconds + self.conf.get('BBB_EOL_SECS', 60*60*24*90) # 3 months later
         
+        if not message.created.seconds:
+            message.created = message.updated
         return True
     
     
     def _load_url(self, url):
         r = requests.post(self.conf.get('PUPPETEER_ENDPOINT', 'http://localhost:3001/scrape'),
-            data=[url])
+            json=[url])
         r.raise_for_status()
         return r.json()[url]
 
-    def _message_page(self, url, html):
+    def _massage_page(self, url, html):
         # make sure we were given a valid page
         if url not in html:
             self.logger.debug('%s not found in html: %s...', url, html[0:500])
@@ -98,7 +101,7 @@ class ADSTurboBeeCelery(ADSCelery):
         
         # insert base href
         b = urlparse.urlparse(url)
-        base = '\n<base href="' + b.scheme + '//' + b.netloc + '" /base>\n'
+        base = '\n<base href="' + b.scheme + '//' + b.netloc + '" />\n'
 
         return html[0:head_end] + base + html[head_end+1:]
 
