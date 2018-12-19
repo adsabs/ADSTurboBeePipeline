@@ -1,4 +1,5 @@
-FROM node:8
+FROM phusion/passenger-nodejs
+#FROM node:8
 
 # Install dependencies
 RUN apt-get update &&\

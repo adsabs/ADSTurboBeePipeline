@@ -88,7 +88,7 @@ class ADSTurboBeeCelery(ADSCelery):
         i = head_start + 1
         head_end = None
         while i < len(text):
-            if text[i] == '>' and text[i-1] != '\':
+            if text[i] == '>' and text[i-1] != '\\':
                 head_end = i
                 break
             i += 1
