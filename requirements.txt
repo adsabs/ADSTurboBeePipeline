@@ -2,6 +2,6 @@ git+https://github.com/adsabs/ADSPipelineUtils.git@v1.0.5
 alembic==0.9.1
 librabbitmq==1.6.1
 requests==2.13.0
-psycopg2==2.7.1
+psycopg2==2.7.4
 adsmsg==1.0.5
 celery==4.1.1
