@@ -2,16 +2,15 @@
 # serves as a running log of claims and storage of author-related
 # information). It is not consumed by others (ie. we 'push' results) 
 # SQLALCHEMY_URL = 'postgres://docker:docker@localhost:6432/docker'
-SQLALCHEMY_URL = 'sqlite:///'
+SQLALCHEMY_URL = 'postgres://turbobee_pipeline:turbobee_pipeline@localhost:15432/turbobee_pipeline'
 SQLALCHEMY_ECHO = False
 
 
 # Configuration of the pipeline; if you start 'vagrant up rabbitmq' 
 # container, the port is localhost:8072 - but for production, you 
 # want to point to the ADSImport pipeline 
-RABBITMQ_URL = 'amqp://guest:guest@localhost:6672/?' \
-               'socket_timeout=10&backpressure_detection=t'
-               
+CELERY_BROKER = 'pyamqp://guest:guest@localhost:5682/turbobee_pipeline'
+CELERY_INCLUDE = ['adstb.tasks']
 
 # possible values: WARN, INFO, DEBUG
 LOGGING_LEVEL = 'DEBUG'
