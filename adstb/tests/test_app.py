@@ -10,6 +10,8 @@ from adstb.models import KeyValue
 import testing.postgresql
 from adstb.models import Base
 from adstb import app
+from adsmsg import TurboBeeMsg
+from mock import patch, MagicMock
 
 class TestTurboBeeCelery(unittest.TestCase):
     """
@@ -34,7 +36,7 @@ class TestTurboBeeCelery(unittest.TestCase):
         self.app = app.ADSTurboBeeCelery('test', local_config=\
             {
             'SQLALCHEMY_URL': 'sqlite:///',
-            'SQLALCHEMY_ECHO': True,
+            'SQLALCHEMY_ECHO': False,
             'PROJ_HOME' : proj_home,
             'TEST_DIR' : os.path.join(proj_home, 'adstb/tests'),
             })
@@ -53,7 +55,17 @@ class TestTurboBeeCelery(unittest.TestCase):
         assert self.app._config.get('SQLALCHEMY_URL') == 'sqlite:///'
         assert self.app.conf.get('SQLALCHEMY_URL') == 'sqlite:///'
 
-
+    
+    def test_update_store(self):
+        msg = TurboBeeMsg(qid='foo', value='bar')
+        msg2 = TurboBeeMsg(qid='foo', value='bar')
+        resp = MagicMock()
+        resp.raise_for_status = lambda : 1
+        with patch.object(self.app._client, 'post', return_value=resp) as post:
+            r = self.app.update_store([msg, msg2])
+            assert post.call_args[0][0] == u'https://api.adsabs.harvard.edu/v1/store/update'
+            assert len(post.call_args[1]['files']) == 2
+            assert hasattr(post.call_args[1]['files']['0'], 'read') # check it is a StringIO
 
     
 if __name__ == '__main__':

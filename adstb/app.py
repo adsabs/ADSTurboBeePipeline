@@ -6,6 +6,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from adstb.exceptions import InvalidContent
+try:
+    from cStringIO import StringIO
+except:
+    from StringIO import StringIO
 import urlparse
 
 import requests
@@ -103,7 +107,7 @@ class ADSTurboBeeCelery(ADSCelery):
         b = urlparse.urlparse(url)
         base = '\n<base href="' + b.scheme + '//' + b.netloc + '" />\n'
 
-        return html[0:head_end] + base + html[head_end+1:]
+        return html[0:head_end+1] + base + html[head_end+1:]
 
 
     def extract_bibcode(self, url_or_target):
@@ -124,12 +128,18 @@ class ADSTurboBeeCelery(ADSCelery):
         :return: qid - qid when operation succeeded
         """
         r = self._post(self.conf.get('UPDATE_ENDPOINT'), message)
-        r.raise_for_error()
+        r.raise_for_status()
         
         
-    def _post(self, url, message):
-        
-        clz, data = message.dump()
-        return self._client.post(url, data=data)
+    def _post(self, url, messages):
+        if not isinstance(messages, list):
+            messages = [messages]
+        out = {}
+        i = 0
+        for m in messages:
+            clz, data = m.dump()
+            out[str(i)] = StringIO(data)
+            i += 1
+        return self._client.post(url, files=out)
         
         

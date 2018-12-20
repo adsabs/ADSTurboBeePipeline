@@ -34,14 +34,14 @@ class TestWorkers(unittest.TestCase):
     def test_task_harvest_bumblebee(self):
         
         
-        with patch.object(tasks.app, '_load_url', return_value = '<html>foo</html>') as loader, \
+        with patch.object(tasks.app, '_load_url', return_value = '<html><head>foo</head> 2019MNRAS.482.1872B </html>') as loader, \
             patch.object(tasks.task_output_results, 'delay') as next_task:
             
             
             msg = TurboBeeMsg(target='2019MNRAS.482.1872B')
             tasks.task_harvest_bumblebee(msg)
             self.assertTrue(next_task.called)
-            self.assertTrue(msg.value == "<html>foo</html>")
+            assert msg.value == "<html><head>\n<base href=\"//\" />\nfoo</head> 2019MNRAS.482.1872B </html>"
             self.assertTrue(msg.updated.seconds > 0)
             self.assertTrue(msg.expires.seconds >= msg.updated.seconds + 24*60*60)
             self.assertTrue(msg.eol.seconds >= msg.updated.seconds + 24*60*60*30)
