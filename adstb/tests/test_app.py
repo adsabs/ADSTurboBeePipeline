@@ -63,9 +63,10 @@ class TestTurboBeeCelery(unittest.TestCase):
         resp.raise_for_status = lambda : 1
         with patch.object(self.app._client, 'post', return_value=resp) as post:
             r = self.app.update_store([msg, msg2])
+            
             assert post.call_args[0][0] == u'https://api.adsabs.harvard.edu/v1/store/update'
-            assert len(post.call_args[1]['files']) == 2
-            assert hasattr(post.call_args[1]['files']['0'], 'read') # check it is a StringIO
+            assert len(post.call_args[1]['data']) == 2
+            assert post.call_args[1]['data']['0'] == '\n\x03fooR\x03bar'
 
     
 if __name__ == '__main__':

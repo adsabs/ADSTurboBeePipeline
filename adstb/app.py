@@ -138,8 +138,8 @@ class ADSTurboBeeCelery(ADSCelery):
         i = 0
         for m in messages:
             clz, data = m.dump()
-            out[str(i)] = StringIO(data)
+            out[str(i)] = data
             i += 1
-        return self._client.post(url, files=out)
+        return self._client.post(url, data=out)
         
         
