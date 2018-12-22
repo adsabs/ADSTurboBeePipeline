@@ -129,6 +129,7 @@ class ADSTurboBeeCelery(ADSCelery):
         """
         r = self._post(self.conf.get('UPDATE_ENDPOINT'), message)
         r.raise_for_status()
+        return r
         
         
     def _post(self, url, messages):
