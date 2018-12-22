@@ -65,8 +65,8 @@ class TestTurboBeeCelery(unittest.TestCase):
             r = self.app.update_store([msg, msg2])
             
             assert post.call_args[0][0] == u'https://api.adsabs.harvard.edu/v1/store/update'
-            assert len(post.call_args[1]['data']) == 2
-            assert post.call_args[1]['data']['0'] == '\n\x03fooR\x03bar'
+            assert len(post.call_args[1]['files']) == 2
+            assert post.call_args[1]['files']['0'] == '\n\x03fooR\x03bar'
 
     
 if __name__ == '__main__':

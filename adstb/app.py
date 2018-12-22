@@ -140,6 +140,6 @@ class ADSTurboBeeCelery(ADSCelery):
             clz, data = m.dump()
             out[str(i)] = data
             i += 1
-        return self._client.post(url, data=out)
+        return self._client.post(url, files=out)
         
         
