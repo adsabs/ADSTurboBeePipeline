@@ -105,7 +105,7 @@ class ADSTurboBeeCelery(ADSCelery):
         
         # insert base href
         b = urlparse.urlparse(url)
-        base = '\n<base href="' + b.scheme + '//' + b.netloc + '" />\n'
+        base = '\n<base href="' + b.scheme + '://' + b.netloc + '" />\n'
 
         return html[0:head_end+1] + base + html[head_end+1:]
 
