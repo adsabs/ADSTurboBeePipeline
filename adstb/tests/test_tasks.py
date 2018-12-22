@@ -41,7 +41,7 @@ class TestWorkers(unittest.TestCase):
             msg = TurboBeeMsg(target='2019MNRAS.482.1872B')
             tasks.task_harvest_bumblebee(msg)
             self.assertTrue(next_task.called)
-            assert msg.value == "<html><head>\n<base href=\"//\" />\nfoo</head> 2019MNRAS.482.1872B </html>"
+            assert msg.value == "<html><head>\n<base href=\"://\" />\nfoo</head> 2019MNRAS.482.1872B </html>"
             self.assertTrue(msg.updated.seconds > 0)
             self.assertTrue(msg.expires.seconds >= msg.updated.seconds + 24*60*60)
             self.assertTrue(msg.eol.seconds >= msg.updated.seconds + 24*60*60*30)

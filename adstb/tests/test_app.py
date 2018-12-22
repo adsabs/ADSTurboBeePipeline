@@ -39,6 +39,7 @@ class TestTurboBeeCelery(unittest.TestCase):
             'SQLALCHEMY_ECHO': False,
             'PROJ_HOME' : proj_home,
             'TEST_DIR' : os.path.join(proj_home, 'adstb/tests'),
+            'UPDATE_ENDPOINT': 'https://api.adsabs.harvard.edu/v1/store/update'
             })
         Base.metadata.bind = self.app._session.get_bind()
         Base.metadata.create_all()
