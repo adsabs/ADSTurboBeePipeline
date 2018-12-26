@@ -79,10 +79,6 @@ class ADSTurboBeeCelery(ADSCelery):
         return r.json()[url]
 
     def _massage_page(self, url, html):
-        # make sure we were given a valid page
-        if url not in html:
-            self.logger.debug('%s not found in html: %s...', url, html[0:500])
-            raise InvalidContent('Rejecting what was generated for: %s' % url)
         
         # modify the links on the page (well, clever method could modify all links, 
         # but it might not catch scripts; so le'ts go brute force...)
