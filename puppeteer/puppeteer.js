@@ -41,12 +41,10 @@ const runner = {
     try {
       console.log("Navigating to url: " + url);
       await page.goto(url, { waitUntil: ['load', "networkidle0", 'domcontentloaded']});
-      await page.waitFor(runner.options['pageWait'] || 1000);
-      //await page.waitFor(url => !!document.location.href === url);
 
-      data = await page.evaluate(() =>
-          document.documentElement.outerHTML
-        );
+      data = await page.evaluate(async () => new Promise((resolve, reject) => {
+          window.__PREPARE_STATIC_PAGE__(html => resolve(html()));
+      }));
 
     } catch (e) {
       console.log("Error happened", e);
