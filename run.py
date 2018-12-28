@@ -80,7 +80,11 @@ def harvest_by_query(query, queue='harvest-bumblebee',
     app.logger.info('Done submitting {0} pages.'.format(i))
 
 
-    
+def submit_url(url):    
+    """Submits a specific URL for processing."""
+    msg = TurboBeeMsg(target=url)
+    tasks.task_harvest_bumblebee.delay(msg)
+
 
 if __name__ == '__main__':
 
@@ -91,6 +95,11 @@ if __name__ == '__main__':
                         dest='harvest_by_query',
                         action='store',
                         help='Given particular SOLR query (in JSON format with all params) it will submit all bibcodes for harvesting')
+    parser.add_argument('-s',
+                        '--submit_url',
+                        dest='submit_url',
+                        action='store',
+                        help='Will submit for processing particular target')
     parser.add_argument('-u',
                         '--url_tmpl',
                         dest='url_tmpl',
@@ -103,4 +112,7 @@ if __name__ == '__main__':
 
     if args.harvest_by_query:
         harvest_by_query(args.harvest_by_query, tmpl=args.url_tmpl)
+    
+    if args.submit_url:
+        submit_url(args.submit_url)
         

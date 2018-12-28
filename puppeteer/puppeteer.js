@@ -43,7 +43,7 @@ const runner = {
       await page.goto(url, { waitUntil: ['load', "networkidle0", 'domcontentloaded']});
 
       data = await page.evaluate(async () => new Promise((resolve, reject) => {
-          window.__PREPARE_STATIC_PAGE__(html => resolve(html()));
+          window.__PREPARE_STATIC_PAGE__(html => resolve(html));
       }));
 
     } catch (e) {
