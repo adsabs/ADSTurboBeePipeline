@@ -21,13 +21,15 @@ app.post("/scrape", async (req, res) => {
   const data = {};
   for (var idx in req.body) {
     var url = req.body[idx];
-    //console.log(url)
+    console.log(url)
     try {
       data[url] = await runner.scrape(url);
+      console.log('Harvested # chars', data[url].length);
     }
     catch (error) {
       data[url] = error;
       res.status(500);
+      console.log(error)
     }
   };
   return res.json( data );

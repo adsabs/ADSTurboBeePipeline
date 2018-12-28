@@ -32,19 +32,34 @@ const runner = {
 
   scrape: async url => {
     let data = '';
-
-    if (runner.browser === null)
+    
+    // with this wrapper you can await for specific timeStamp
+    function getMetric(page, name) {
+        return new Promise((resolve, reject) => page.on('metrics', ({ title }) => {
+            console.log('seeing', name);
+            if (name === title) {
+                resolve();
+            }
+        }));
+    }
+    
+    if (runner.browser === null) {
       await runner.init();
+      const detectChange = 'window.addEventListener("page-rendered", () => console.timeStamp("page-rendered"));';
+      await runner.page.addScriptTag({ content: detectChange });
+    }
 
     const page = runner.page;
+    const pageChange = getMetric(page, 'page-rendered');
     
     try {
       console.log("Navigating to url: " + url);
       await page.goto(url, { waitUntil: ['load', "networkidle0", 'domcontentloaded']});
-
-      data = await page.evaluate(async () => new Promise((resolve, reject) => {
-          window.__PREPARE_STATIC_PAGE__(html => resolve(html));
-      }));
+      //await pageChange; // wait for page-rendered metric event
+      page.waitFor(1000);
+      data = await page.evaluate(() =>
+           window.__PREPARE_STATIC_PAGE__()
+         );
 
     } catch (e) {
       console.log("Error happened", e);
