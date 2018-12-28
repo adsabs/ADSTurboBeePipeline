@@ -36,7 +36,6 @@ const runner = {
     // with this wrapper you can await for specific timeStamp
     function getMetric(page, name) {
         return new Promise((resolve, reject) => page.on('metrics', ({ title }) => {
-            console.log('seeing', name);
             if (name === title) {
                 resolve();
             }
@@ -56,7 +55,7 @@ const runner = {
       console.log("Navigating to url: " + url);
       await page.goto(url, { waitUntil: ['load', "networkidle0", 'domcontentloaded']});
       //await pageChange; // wait for page-rendered metric event
-      page.waitFor(1000);
+      await page.waitFor(1000);
       data = await page.evaluate(() =>
            window.__PREPARE_STATIC_PAGE__()
          );
