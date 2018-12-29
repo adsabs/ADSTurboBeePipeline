@@ -1,5 +1,6 @@
 const puppeteer = require("puppeteer");
 const {TimeoutError} = require('puppeteer/Errors');
+const fs = require('fs');
 
 const runner = {
 
@@ -14,6 +15,8 @@ const runner = {
     });
     runner.page = await runner.browser.newPage();
     runner.options = options || {};
+    //await runner.page.evaluate(fs.readFileSync('./require.min.js', 'utf8'));
+    //await runner.page.evaluate(fs.readFileSync('./persist.js', 'utf8'));
   },
 
   cleanup: async () => {
@@ -34,8 +37,10 @@ const runner = {
     let data = '';
     
     // with this wrapper you can await for specific timeStamp
+    // we must instruct browser to call console.timeStamp('page-rendered')
+    // currently bbb doesn't have a good place for it
     function getMetric(page, name) {
-        return new Promise((resolve, reject) => page.on('metrics', ({ title }) => {
+        return new Promise((resolve, reject) => page.once('metrics', ({ title }) => {
             if (name === title) {
                 resolve();
             }
@@ -44,20 +49,23 @@ const runner = {
     
     if (runner.browser === null) {
       await runner.init();
-      const detectChange = 'window.addEventListener("page-rendered", () => console.timeStamp("page-rendered"));';
-      await runner.page.addScriptTag({ content: detectChange });
     }
 
     const page = runner.page;
-    const pageChange = getMetric(page, 'page-rendered');
     
     try {
       console.log("Navigating to url: " + url);
+      //const pageChange = getMetric(page, 'page-rendered');
       await page.goto(url, { waitUntil: ['load', "networkidle0", 'domcontentloaded']});
+      
+      // include our own way of persisting a bbb page
+      await runner.page.evaluate(fs.readFileSync('./persist.js', 'utf8'));
+      
+
       //await pageChange; // wait for page-rendered metric event
-      await page.waitFor(1000);
+      await page.waitFor(500);
       data = await page.evaluate(() =>
-           window.__PREPARE_STATIC_PAGE__()
+           window.__PERSIST()
          );
 
     } catch (e) {
@@ -69,7 +77,7 @@ const runner = {
         throw e;
       }
       await page.screenshot({ path: "error.png" });
-      await cleanup();
+      await runner.cleanup();
       throw e;
     }
     return data;

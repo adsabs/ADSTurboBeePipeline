@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const runner = require("./puppeteer");
 const port = process.env.PORT || 3000;
 
+runner.init();
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 app.get("/", (req, res) => res.send("Hello World!"));
