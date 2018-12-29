@@ -11,6 +11,9 @@ if (!window.__PERSIST) {
             '.popover'
         ];
         $('script', $head).remove();
+        
+
+
         $head.append('<script>window.__PRERENDERED = true;</script>');
         $(toRemove.join(', '), $body).remove();
         $('#authors-and-aff', $body).prepend('<div style="height:20px;"></div>')
@@ -21,20 +24,11 @@ if (!window.__PERSIST) {
         $('form[name="main-query"] input', $body).addClass('disabled');
         $('form[name="main-query"] button[type="submit"]>i', $body).addClass('disabled fa-spin fa-spinner');
         var $dom = $('<html></html>').append($head).append($body);
+        
+        $('base', $head).remove();
+        $head.prepend($('<base href="//">'));
+
         return $dom[0].outerHTML;
         }
     });
-}
-
-if (window.bbb && !window.__subscribed) {
-    var pubsub = bbb.getService('PubSub');
-    var qm = bbb.getController('QueryMediator');
-    pubsub.on("all", function(event) {
-        console.log(event, qm.__searchCycle.finished, qm.__searchCycle.inprogress.length)
-        if (event.indexOf('Aria') > -1) {
-            console.log('found it');
-            console.timeStamp('page-rendered');
-        }
-    });
-    window.__subscribed = true;
 }

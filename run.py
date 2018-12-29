@@ -22,7 +22,7 @@ import json
 app = tasks.app
 
 def harvest_by_query(query, queue='harvest-bumblebee', 
-                     tmpl='https://devapi.adsabs.harvard.edu/#abs/%(bibcode)s/abstract', 
+                     tmpl='https://dev.adsabs.harvard.edu/#abs/%(bibcode)s/abstract', 
                      **kwargs):
     """
     Given a SOLR query, it will harvest ALL bibcodes and submit
@@ -104,7 +104,7 @@ if __name__ == '__main__':
                         '--url_tmpl',
                         dest='url_tmpl',
                         action='store',
-                        default='https://devapi.adsabs.harvard.edu/#abs/%(bibcode)s/abstract',
+                        default='https://dev.adsabs.harvard.edu/#abs/%(bibcode)s/abstract',
                         help='URL template for harvesting targets')
     
     args = parser.parse_args()
