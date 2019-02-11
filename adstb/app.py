@@ -31,6 +31,9 @@ def create_app(app_name='adstb',
 
 
 
+# valid url patterns in BBB
+bbb_paths = ('search', 'abs', 'user', 'index', 'execute-query')
+
 class ADSTurboBeeCelery(ADSCelery):
     
     def __init__(self, *args, **kwargs):
@@ -39,6 +42,27 @@ class ADSTurboBeeCelery(ADSCelery):
         self._client = requests.Session()
         self._client.headers.update({'Authorization': 'Bearer:{}'.format(self.conf['API_TOKEN'])})
         
+    
+    def _pick_bbb_url(self, url):
+        """This method will return a hash version of an url;
+        and the push-state version of the URL; we'll always
+        save the push-state because that is what the webserver
+        can see."""
+        
+        if '#' in url:
+            for x in bbb_paths:
+                k = '#' + x + '/'
+                if k in url:
+                    return url, url.replace(k, x + '/')
+        else:
+            for x in bbb_paths:
+                k = x + '/'
+                if k in url:
+                    return url.replace(k, '#' + x + '/'), url  
+            
+        # default, do nothing
+        return url, url
+                
         
     def harvest_webpage(self, message):
         """Loads a bumblebee page; it reuses js client. After the page
@@ -56,10 +80,12 @@ class ADSTurboBeeCelery(ADSCelery):
             else:
                 raise Exception('Sorry, dont know how to load webpage: {}'.format(message.target))
         
-        # TODO: load the actual bbb webpage
-        self.logger.info('Going to harvest: %s', url)
-        html = self._load_url(message.target)
-        html = self._massage_page(message.target, html)
+        
+        bbb_url, official_url = self._pick_bbb_url(url)
+        self.logger.info('Going to harvest: %s (and save as: %s)', bbb_url, official_url)
+        html = self._load_url(bbb_url)
+        message.target = official_url
+        
         
         # update tiemstamps
         message.set_value(html, message.ContentType.html)

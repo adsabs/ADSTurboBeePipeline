@@ -26,7 +26,7 @@ if (!window.__PERSIST) {
         var $dom = $('<html></html>').append($head).append($body);
         
         $('base', $head).remove();
-        $head.prepend($('<base href="//">'));
+        $head.prepend($('<base href="/">'));
 
         return $dom[0].outerHTML;
         }

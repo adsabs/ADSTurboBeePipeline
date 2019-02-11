@@ -37,6 +37,7 @@ def task_harvest_bumblebee(message):
     """
     
     if message.target:
+        
         v = app.harvest_webpage(message)
         if v:
             task_output_results.delay(message)
