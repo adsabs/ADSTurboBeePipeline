@@ -63,7 +63,7 @@ const runner = {
       
 
       //await pageChange; // wait for page-rendered metric event
-      await page.waitFor(3000);
+      await page.waitFor(100);
       data = await page.evaluate(() =>
            window.__PERSIST()
          );
