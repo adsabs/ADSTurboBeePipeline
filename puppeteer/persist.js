@@ -28,7 +28,13 @@ if (!window.__PERSIST) {
         $('base', $head).remove();
         $head.prepend($('<base href="/">'));
 
-        return $dom[0].outerHTML;
+        var html = $dom[0].outerHTML.replace('var progressValue = 0', 'var progressValue = 100');
+        var i = html.indexOf('// Progress Bar');
+        var j = html.indexOf('})()', i);
+        if (i > -1 && j > -1 && j - i < 2000)
+          return html.substring(0, i) + "\nwindow.__PAGE_LOAD_TIMESTAMP = new Date();\n" + html.substring(j+4);
+
+        return html;
         }
     });
 }

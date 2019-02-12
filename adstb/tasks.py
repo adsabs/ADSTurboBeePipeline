@@ -18,12 +18,14 @@ exch = Exchange(app.conf.get('CELERY_DEFAULT_EXCHANGE', 'turbobee_pipeline'),
 app.conf.CELERY_QUEUES = (
     Queue('harvest-bumblebee', exch, routing_key='bumblebee'),
     Queue('output-results', exch, routing_key='output'),
+    Queue('priority-bumblebee', exch, routing_key='priority'),
 )
 
 
 
 
 # ============================= TASKS ============================================= #
+
 
 @app.task(queue='harvest-bumblebee')
 def task_harvest_bumblebee(message):
@@ -41,7 +43,12 @@ def task_harvest_bumblebee(message):
         v = app.harvest_webpage(message)
         if v:
             task_output_results.delay(message)
-        
+
+
+@app.task(queue='priority-bumblebee')
+def task_priority_queue(message):
+    return task_harvest_bumblebee(message)
+
         
     
 @app.task(queue='output-results', retry_limit=2)

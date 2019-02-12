@@ -28,3 +28,4 @@ PUPPETEER_ENDPOINT = 'http://localhost:3001/scrape'
 # the turbobee-microservice that accepts objects that our pipelne generates
 UPDATE_ENDPOINT = 'https://devapi.adsabs.harvard.edu/v1/store/update'
 SEARCH_ENDPOINT = 'https://devapi.adsabs.harvard.edu/v1/search/query'
+STORE_SEARCH_ENDPOINT = 'https://devapi.adsabs.harvard.edu/v1/store/search'

@@ -76,7 +76,7 @@ class ADSTurboBeeCelery(ADSCelery):
         if not (url.startswith('http') or url.startswith('//')):
             bibcode = self.extract_bibcode(message.target)
             if bibcode:
-                url = self.conf.get('BBB_ABS_PAGE', 'https://ui.adsabs.harvard.edu/abs/{}').format(bibcode)
+                url = self.conf.get('BBB_ABS_PAGE', 'https://ui.adsabs.harvard.edu/abs/{}/abstract').format(bibcode)
             else:
                 raise Exception('Sorry, dont know how to load webpage: {}'.format(message.target))
         

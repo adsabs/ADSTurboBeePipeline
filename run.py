@@ -13,11 +13,12 @@ __status__ = 'Production'
 __license__ = 'MIT'
 
 import sys
-import time
 import argparse
+import time
 from adstb import tasks
 from adsmsg import TurboBeeMsg
 import json
+from adsputils import get_date
 
 app = tasks.app
 
@@ -80,6 +81,54 @@ def harvest_by_query(query, queue='harvest-bumblebee',
     app.logger.info('Done submitting {0} pages.'.format(i))
 
 
+def harvest_by_null(queue='priority-bumblebee', 
+                    max_num=-1,
+                    **kwargs):
+    """
+    Given a SOLR query, it will harvest ALL rows that have empty
+    timestamp (entries, that should be built).
+    
+    :param: queue - where to send the claims
+    
+    :return: no return
+    """
+    
+    url = app.conf.get('STORE_SEARCH_ENDPOINT', 'https://api.adsabs.harvard.edu/v1/store/search')
+    
+    # reuse the http client with keep-alive connections
+    client = app._client
+    params = {'null': True}
+    
+    
+    
+    i = 0
+    seen = set()
+    while True:
+        r = client.get(url, params=params)
+        r.raise_for_status()
+        j = i
+        for d in r.json():
+            msg = TurboBeeMsg(target=d['target'],
+                              qid=d['qid'])
+            
+            
+            tasks.task_priority_queue.delay(msg)
+            params['last_id'] = d['id']
+            if d['id'] in seen:
+                break
+            seen.add(d['id'])
+            i+= 1
+            
+            if max_num > 0 and i > max_num:
+                break
+        
+        if j == i:
+            break
+    
+        
+    app.logger.info('Done submitting {0} pages.'.format(i))
+
+
 def submit_url(url):    
     """Submits a specific URL for processing."""
     msg = TurboBeeMsg(target=url)
@@ -106,12 +155,20 @@ if __name__ == '__main__':
                         action='store',
                         default='https://dev.adsabs.harvard.edu/#abs/%(bibcode)s/abstract',
                         help='URL template for harvesting targets')
+    parser.add_argument('-n',
+                        '--harvest_null_objects',
+                        dest='harvest_null_objects',
+                        action='store_true',
+                        help='Will search for rows with created=null timestamp; i.e. entries that ought to be built yet')
     
     args = parser.parse_args()
     
 
     if args.harvest_by_query:
         harvest_by_query(args.harvest_by_query, tmpl=args.url_tmpl)
+        
+    if args.harvest_null_objects:
+        harvest_by_null()
     
     if args.submit_url:
         submit_url(args.submit_url)
