@@ -8,13 +8,15 @@ if (!window.__PERSIST) {
             '#toggle-aff',
             '#toggle-more-authors',
             'div.navbar-collapse',
-            '.popover'
+            'head>script',
+            '.popover',
+            '.back-button',
+            '.s-library-area',
+            '.icon-clear'
         ];
-        $('script', $head).remove();
         
 
 
-        $head.append('<script>window.__PRERENDERED = true;</script>');
         $(toRemove.join(', '), $body).remove();
         $('#authors-and-aff', $body).prepend('<div style="height:20px;"></div>')
         $('.s-nav-container nav>[data-widget-id]>div', $body)
@@ -24,6 +26,7 @@ if (!window.__PERSIST) {
         $('form[name="main-query"] input', $body).addClass('disabled');
         $('form[name="main-query"] button[type="submit"]>i', $body).addClass('disabled fa-spin fa-spinner');
         var $dom = $('<html></html>').append($head).append($body);
+        $head.append('<script>window.__PRERENDERED = true;</script>');
         
         $('base', $head).remove();
         $head.prepend($('<base href="/">'));
