@@ -8,7 +8,6 @@ if (!window.__PERSIST) {
             '#toggle-aff',
             '#toggle-more-authors',
             'div.navbar-collapse',
-            'head>script',
             '.popover',
             '.back-button',
             '.s-library-area',
@@ -16,7 +15,7 @@ if (!window.__PERSIST) {
         ];
         
 
-
+        $('script', $head).remove();
         $(toRemove.join(', '), $body).remove();
         $('#authors-and-aff', $body).prepend('<div style="height:20px;"></div>')
         $('.s-nav-container nav>[data-widget-id]>div', $body)
