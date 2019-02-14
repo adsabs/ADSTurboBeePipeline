@@ -102,6 +102,7 @@ def harvest_by_null(queue='priority-bumblebee',
     
     
     i = 0
+    last_id = ''
     seen = set()
     while True:
         r = client.get(url, params=params)
@@ -114,6 +115,7 @@ def harvest_by_null(queue='priority-bumblebee',
             
             tasks.task_priority_queue.delay(msg)
             params['last_id'] = d['id']
+            last_id = d['id']
             if d['id'] in seen:
                 break
             seen.add(d['id'])
@@ -127,6 +129,7 @@ def harvest_by_null(queue='priority-bumblebee',
     
         
     app.logger.info('Done submitting {0} pages.'.format(i))
+    print i, last_id
 
 
 def submit_url(url):    
@@ -160,6 +163,12 @@ if __name__ == '__main__':
                         dest='harvest_null_objects',
                         action='store_true',
                         help='Will search for rows with created=null timestamp; i.e. entries that ought to be built yet')
+    
+    parser.add_argument('-l',
+                        '--last_id',
+                        dest='last_id',
+                        action='store',
+                        help='The last ID to be used for fetching the next pages')
     
     args = parser.parse_args()
     
