@@ -19,6 +19,7 @@ from adstb import tasks
 from adsmsg import TurboBeeMsg
 import json
 from adsputils import get_date
+from adstb.models import KeyValue
 
 app = tasks.app
 
@@ -102,8 +103,15 @@ def harvest_by_null(queue='priority-bumblebee',
     
     
     i = 0
-    last_id = ''
     seen = set()
+    with app.session_scope() as session:
+        kv = session.query(KeyValue).filter_by(key='last.null').first()
+        if kv is not None:
+            last_id = kv.value
+        else:
+            last_id = -1 
+                
+    
     while True:
         r = client.get(url, params=params)
         r.raise_for_status()
@@ -126,6 +134,16 @@ def harvest_by_null(queue='priority-bumblebee',
         
         if j == i:
             break
+        
+    if i > 0:
+        with app.session_scope() as session:
+            kv = session.query(KeyValue).filter_by(key='last.null').first()
+            if kv is None:
+                kv = KeyValue(key='last.null', value=last_id)
+                session.add(kv)
+            else:
+                kv.value = last_id
+            session.commit()
     
         
     app.logger.info('Done submitting {0} pages.'.format(i))
@@ -136,6 +154,18 @@ def submit_url(url):
     """Submits a specific URL for processing."""
     msg = TurboBeeMsg(target=url)
     tasks.task_harvest_bumblebee.delay(msg)
+
+
+def print_kvs():    
+    """Prints the values stored in the KeyValue table."""
+    
+    print 'db', app.conf.get('SQLALCHEMY_URL')
+    
+    print 'Key, Value from the storage:'
+    print '-' * 80
+    with app.session_scope() as session:
+        for kv in session.query(KeyValue).order_by('key').all():
+            print kv.key, kv.value
 
 
 if __name__ == '__main__':
@@ -170,8 +200,18 @@ if __name__ == '__main__':
                         action='store',
                         help='The last ID to be used for fetching the next pages')
     
+    parser.add_argument('-k', 
+                        '--kv', 
+                        dest='kv', 
+                        action='store_true',
+                        default=False,
+                        help='Show current values of KV store')
+    
     args = parser.parse_args()
     
+    
+    if args.kv:
+        print_kvs()
 
     if args.harvest_by_query:
         harvest_by_query(args.harvest_by_query, tmpl=args.url_tmpl)
