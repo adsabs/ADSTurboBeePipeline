@@ -39,7 +39,11 @@ def task_harvest_bumblebee(message):
     """
     
     if message.target:
-        
+        # TODO: on failure, the message will be retried; however
+        # a no entry is made inside the microservice db - that may
+        # result in multiple retries (also depends on presence/absence)
+        # of last_id when recs are fetched; should we record an
+        # empty/failed record here?
         v = app.harvest_webpage(message)
         if v:
             task_output_results.delay(message)

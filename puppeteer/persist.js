@@ -1,6 +1,15 @@
 if (!window.__PERSIST) {
     // for pre-rendered abstract pages
     require(['jquery'], function ($) {
+
+        var alert = $('div[data-widget="AlertsWidget"]')[0];
+        if (alert && alert.outerText)
+            throw Exception(location.href + ": Encountered exception:" + alert.outerText);
+
+        var abs = $('div[data-widget="ShowAbstract"]')[0];
+        if (abs && abs.outerText.indexOf('Loading...') > -1)
+            throw Exception(location.href + " was not loaded fully");
+        
         window.__PERSIST = function () {
         var $head = $('head').clone(true);
         var $body = $('body').clone(true);
@@ -34,7 +43,7 @@ if (!window.__PERSIST) {
         var i = html.indexOf('// Progress Bar');
         var j = html.indexOf('})()', i);
         if (i > -1 && j > -1 && j - i < 2000)
-          return html.substring(0, i) + "\nwindow.__PAGE_LOAD_TIMESTAMP = new Date();\n" + html.substring(j+4);
+          html = html.substring(0, i) + "\nwindow.__PAGE_LOAD_TIMESTAMP = new Date();\n" + html.substring(j+4);
 
         return html;
         }

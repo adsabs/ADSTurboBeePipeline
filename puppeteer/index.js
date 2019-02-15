@@ -3,6 +3,8 @@ const app = express();
 const bodyParser = require("body-parser");
 const runner = require("./puppeteer");
 const port = process.env.PORT || 3000;
+const maxReqsPerSession = process.env.MAX_REQS || 500;
+var counter = 0;
 
 runner.init();
 app.use(bodyParser.json()); // support json encoded bodies
@@ -33,6 +35,13 @@ app.post("/scrape", async (req, res) => {
       console.log(error)
     }
   };
+
+  counter += 1;
+  if (counter > maxReqsPerSession) {
+    console.log("Restarting browser after " + counter + " reqs");
+    runner.cleanup();
+    counter = 0;
+  }
   return res.json( data );
   
 });
