@@ -69,7 +69,7 @@ const runner = {
          );
 
       if (data && data.length < 20000)
-        throw Exception('Page too small: ' + data.length);
+        throw Error('Page too small: ' + data.length);
 
     } catch (e) {
       console.log("Error happened", e);
