@@ -68,6 +68,9 @@ const runner = {
            window.__PERSIST()
          );
 
+      if (data && data.length < 20000)
+        throw Exception('Page too small: ' + data.length);
+
     } catch (e) {
       console.log("Error happened", e);
       if (e instanceof TimeoutError) {
