@@ -12,6 +12,7 @@ from adstb.models import Base
 from adstb import app
 from adsmsg import TurboBeeMsg
 from mock import patch, MagicMock
+from requests.exceptions import ConnectionError
 
 class TestTurboBeeCelery(unittest.TestCase):
     """
@@ -69,6 +70,14 @@ class TestTurboBeeCelery(unittest.TestCase):
             assert len(post.call_args[1]['files']) == 2
             assert post.call_args[1]['files']['0'] == '\n\x03fooR\x03bar'
 
+    def test_connection_error(self):
+        
+        msg = TurboBeeMsg(qid='foo', value='bar', target='http://www.google.com')
+        self.app.conf['PUPPETEER_ENDPOINT'] = 'http://localhost:3001/scrapesfasdfsad'
+        try:
+            self.app.harvest_webpage(msg)
+        except ConnectionError:
+            pass
     
 if __name__ == '__main__':
     unittest.main()

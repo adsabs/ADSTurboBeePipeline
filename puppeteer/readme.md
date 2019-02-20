@@ -21,7 +21,7 @@ endpoint with just one url - the load will be distributed across browsers.
 
 You can test it with:
 
-```curl 'localhost:3001/scrape' -X POST -d '{"foo": "https://devapi.adsabs.harvard.edu/#abs/2019LRR....22....1I/abstract"}' -H 'Content-Type: application/json'```
+```curl 'localhost:3001/scrape' -X POST -d '["https://dev.adsabs.harvard.edu/#abs/2019LRR....22....1I/abstract"]' -H 'Content-Type: application/json'```
 
 ## To restart
 

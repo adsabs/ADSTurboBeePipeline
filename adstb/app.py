@@ -6,6 +6,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from adstb.exceptions import InvalidContent
+import time
+from requests.exceptions import ConnectionError
+
 try:
     from cStringIO import StringIO
 except:
@@ -41,7 +44,7 @@ class ADSTurboBeeCelery(ADSCelery):
     
         self._client = requests.Session()
         self._client.headers.update({'Authorization': 'Bearer:{}'.format(self.conf['API_TOKEN'])})
-        
+        self._err_counter = 0
     
     def _pick_bbb_url(self, url):
         """This method will return a hash version of an url;
@@ -99,10 +102,15 @@ class ADSTurboBeeCelery(ADSCelery):
     
     
     def _load_url(self, url):
-        r = requests.post(self.conf.get('PUPPETEER_ENDPOINT', 'http://localhost:3001/scrape'),
-            json=[url])
-        r.raise_for_status()
-        return r.json()[url]
+        try:
+            r = requests.post(self.conf.get('PUPPETEER_ENDPOINT', 'http://localhost:3001/scrape'),
+                json=[url])
+            r.raise_for_status()
+            self._err_counter = 0
+            return r.json()[url]
+        except Exception, e:
+            self._err_counter += 1
+            raise e
 
     def _massage_page(self, url, html):
         
@@ -164,5 +172,14 @@ class ADSTurboBeeCelery(ADSCelery):
             out[str(i)] = data
             i += 1
         return self._client.post(url, files=out)
+
+
+    def attempt_recovery(self, task, args=None, kwargs=None, einfo=None, retval=None):
+        """Block if we get connection error"""
+        
+        if isinstance(retval, ConnectionError):
+            self.logger.warn('Cannot establish connection with the crawler; blocking for %s seconds', self._err_counter**2 )
+            time.sleep(self._err_counter**2)
+            
         
         

@@ -5,6 +5,11 @@ const runner = require("./puppeteer");
 const port = process.env.PORT || 3000;
 const maxReqsPerSession = process.env.MAX_REQS || 500;
 var counter = 0;
+var errCounter = 0;
+var maxErr = 3;
+
+var sys = require('sys')
+var exec = require('child_process').exec;
 
 runner.init();
 app.use(bodyParser.json()); // support json encoded bodies
@@ -28,11 +33,17 @@ app.post("/scrape", async (req, res) => {
     try {
       data[url] = await runner.scrape(url);
       console.log('Harvested # chars', data[url].length);
+      errCounter = 0;
     }
     catch (error) {
       data[url] = error;
       res.status(500);
-      console.log(error)
+      console.log(error);
+      errCounter += 1;
+      if (errCounter >= maxErr) {
+        console.error("Internal err counter breached");
+        process.exit();
+      }
     }
   };
 
