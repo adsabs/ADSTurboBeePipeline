@@ -11,7 +11,7 @@ const runner = {
     console.log("Opening browser");
     runner.browser = await puppeteer.launch({
       headless: false,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+      args: ['--no-sandbox', '--disable-dev-shm-usage']
     });
     runner.page = await runner.browser.newPage();
     runner.options = options || {};

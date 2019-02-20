@@ -50,7 +50,7 @@ app.post("/scrape", async (req, res) => {
   counter += 1;
   if (counter > maxReqsPerSession) {
     console.log("Restarting browser after " + counter + " reqs");
-    runner.cleanup();
+    await runner.cleanup();
     counter = 0;
   }
   return res.json( data );
