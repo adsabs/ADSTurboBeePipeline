@@ -68,7 +68,7 @@ const runner = {
            window.__PERSIST()
          );
 
-      if (data && data.length < 20000) {
+      if (data && data.length < 15000) {
         // force page reload on next scrape
         await page.goto('http://www.google.com', { waitUntil: ['load', "networkidle0", 'domcontentloaded']});
         throw Error('Page too small: ' + data.length);
