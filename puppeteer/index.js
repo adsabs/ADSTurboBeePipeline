@@ -6,7 +6,9 @@ const port = process.env.PORT || 3000;
 const maxReqsPerSession = process.env.MAX_REQS || 500;
 var counter = 0;
 var errCounter = 0;
+var pageCounter = 0;
 var maxErr = 3;
+var maxPagePerSession = 10;
 
 var sys = require('sys')
 var exec = require('child_process').exec;
@@ -34,6 +36,11 @@ app.post("/scrape", async (req, res) => {
       data[url] = await runner.scrape(url);
       console.log('Harvested # chars', data[url].length);
       errCounter = 0;
+      pageCounter += 1;
+      if (pageCounter % maxPagePerSession === 0) {
+        console.log("Cleaning up/closing page at: " + pageCounter);
+        await runner.pageReset();
+      }
     }
     catch (error) {
       data[url] = error;

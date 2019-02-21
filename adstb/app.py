@@ -1,6 +1,6 @@
 from .models import KeyValue
 import adsputils
-from adsputils import get_date, setup_logging, load_config, ADSCelery, u2asc
+from adsputils import get_date, setup_logging, load_config, ADSCelery, u2asc, ADSTask
 from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session
@@ -178,8 +178,8 @@ class ADSTurboBeeCelery(ADSCelery):
         """Block if we get connection error"""
         
         if isinstance(retval, ConnectionError):
-            self.logger.warn('Cannot establish connection with the crawler; blocking for %s seconds', self._err_counter**2 )
-            time.sleep(self._err_counter**2)
+            self.logger.warn('Cannot establish connection with the crawler; blocking for %s seconds', 2**self._err_counter )
+            time.sleep(2**self._err_counter)
             
         
         

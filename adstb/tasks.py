@@ -8,7 +8,7 @@ from celery import Task
 from celery.utils.log import get_task_logger
 from kombu import Exchange, Queue, BrokerConnection
 import datetime
-
+import time
 
 # ============================= INITIALIZATION ==================================== #
 
@@ -37,6 +37,9 @@ def task_harvest_bumblebee(message):
     :param: message: protocol buffer of type TurboBeeMsg
     :return: no return
     """
+    if app._err_counter > 2:
+        app.logger.info('Sleeping, to avoid problems: %d', 2**app._err_counter)
+        time.sleep(2**app._err_counter)
     
     if message.target:
         # TODO: on failure, the message will be retried; however

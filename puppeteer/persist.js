@@ -3,12 +3,12 @@ if (!window.__PERSIST) {
     require(['jquery'], function ($) {
 
         var alert = $('div[data-widget="AlertsWidget"]')[0];
-        if (alert && alert.outerText)
-            throw Exception(location.href + ": Encountered exception:" + alert.outerText);
+        if (alert && alert.outerText && alert.outerText.toLowerCase().indexOf('error') > -1)
+            throw Error(location.href + ": Encountered exception:" + alert.outerText);
 
         var abs = $('div[data-widget="ShowAbstract"]')[0];
         if (abs && abs.outerText.indexOf('Loading...') > -1)
-            throw Exception(location.href + " was not loaded fully");
+            throw Error(location.href + " was not loaded fully");
         
         window.__PERSIST = function () {
         var $head = $('head').clone(true);
