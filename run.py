@@ -69,14 +69,17 @@ def harvest_by_query(query, queue='harvest-bumblebee',
     i = 0
     start = params.get('start', 0)
     while True:
-        start, j = query(start)
-        for b in j['response']['docs']:
-            submit(b['bibcode'])
-            i += 1
-        if start > j['response']['numFound']:
-            break
-        app.logger.info('Done: {0}/{1}'.format(start, j['response']['numFound']))
-        print 'Done submitting: {0}/{1}'.format(start, j['response']['numFound'])
+        try:
+            start, j = query(start)
+            for b in j['response']['docs']:
+                submit(b['bibcode'])
+                i += 1
+            if start > j['response']['numFound']:
+                break
+            app.logger.info('Done: {0}/{1}'.format(start, j['response']['numFound']))
+            print 'Done submitting: {0}/{1}'.format(start, j['response']['numFound'])
+        except Exception, e:
+            print 'Exception', str(e)
     
         
     app.logger.info('Done submitting {0} pages.'.format(i))

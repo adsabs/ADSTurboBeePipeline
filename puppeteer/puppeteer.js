@@ -63,8 +63,10 @@ const runner = {
         }));
     }
     
+    var waitMore = false;
     if (runner.browser === null) {
       await runner.init();
+      waitMore = true;
     }
 
     const page = runner.page;
@@ -79,7 +81,12 @@ const runner = {
       
 
       //await pageChange; // wait for page-rendered metric event
-      await page.waitFor(100);
+      if (waitMore) {
+        await page.waitFor(3000);
+      }
+      else {
+        await page.waitFor(500);
+      }
       data = await page.evaluate(() =>
            window.__PERSIST()
          );
