@@ -40,8 +40,8 @@ class TestWorkers(unittest.TestCase):
             
             msg = TurboBeeMsg(target='2019MNRAS.482.1872B')
             tasks.task_harvest_bumblebee(msg)
-            self.assertEquals(loader.call_args[0], ('https://ui.adsabs.harvard.edu/#abs/2019MNRAS.482.1872B',))
-            self.assertEquals(msg.target, 'https://ui.adsabs.harvard.edu/abs/2019MNRAS.482.1872B')
+            self.assertEquals(loader.call_args[0], ('https://ui.adsabs.harvard.edu/#abs/2019MNRAS.482.1872B/abstract',))
+            self.assertEquals(msg.target, '//ui.adsabs.harvard.edu/abs/2019MNRAS.482.1872B/abstract')
             self.assertTrue(next_task.called)
             self.assertTrue(msg.updated.seconds > 0)
             self.assertTrue(msg.expires.seconds >= msg.updated.seconds + 24*60*60)
@@ -52,14 +52,18 @@ class TestWorkers(unittest.TestCase):
             msg = TurboBeeMsg(target='https://dev.adsabs.harvard.edu/#abs/foobar')
             tasks.task_harvest_bumblebee(msg)
             self.assertEquals(loader.call_args[0], ('https://dev.adsabs.harvard.edu/#abs/foobar',))
-            self.assertEquals(msg.target, 'https://dev.adsabs.harvard.edu/abs/foobar')
+            self.assertEquals(msg.target, '//dev.adsabs.harvard.edu/abs/foobar')
             
             
             msg = TurboBeeMsg(target='https://dev.adsabs.harvard.edu/abs/foobar')
             tasks.task_harvest_bumblebee(msg)
             self.assertEquals(loader.call_args[0], ('https://dev.adsabs.harvard.edu/#abs/foobar',))
-            self.assertEquals(msg.target, 'https://dev.adsabs.harvard.edu/abs/foobar')
+            self.assertEquals(msg.target, '//dev.adsabs.harvard.edu/abs/foobar')
             
+            msg = TurboBeeMsg(target='//dev.adsabs.harvard.edu/abs/foobar')
+            tasks.task_harvest_bumblebee(msg)
+            self.assertEquals(loader.call_args[0], ('https://dev.adsabs.harvard.edu/#abs/foobar',))
+            self.assertEquals(msg.target, '//dev.adsabs.harvard.edu/abs/foobar')
             
             
 

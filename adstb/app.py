@@ -52,16 +52,23 @@ class ADSTurboBeeCelery(ADSCelery):
         save the push-state because that is what the webserver
         can see."""
         
+        scheme = ''
+        if '://' in url:
+            scheme, url = url.split('://')
+            scheme += '://'
+        elif url.startswith('//'):
+            scheme, url = 'https://', url.replace('//', '', 1)
+        
         if '#' in url:
             for x in bbb_paths:
                 k = '#' + x + '/'
                 if k in url:
-                    return url, url.replace(k, x + '/')
+                    return scheme + url, '//' + url.replace(k, x + '/')
         else:
             for x in bbb_paths:
                 k = x + '/'
                 if k in url:
-                    return url.replace(k, '#' + x + '/'), url  
+                    return scheme + url.replace(k, '#' + x + '/'), '//' + url  
             
         # default, do nothing
         return url, url
