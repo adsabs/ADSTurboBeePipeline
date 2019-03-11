@@ -73,7 +73,7 @@ class TestTurboBeeCelery(unittest.TestCase):
     def test_connection_error(self):
         
         msg = TurboBeeMsg(qid='foo', value='bar', target='http://www.google.com')
-        self.app.conf['PUPPETEER_ENDPOINT'] = 'http://localhost:3001/scrapesfasdfsad'
+        self.app.conf['PUPPETEER_ENDPOINT'] = 'http://localhost:3001/scrape'
         try:
             self.app.harvest_webpage(msg)
         except ConnectionError:
