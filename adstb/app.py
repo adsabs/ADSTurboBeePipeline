@@ -6,6 +6,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from adstb.exceptions import InvalidContent
+from adstb import bumblebee
+from adsmsg import TurboBeeMsg
 import time
 from requests.exceptions import ConnectionError
 
@@ -45,6 +47,7 @@ class ADSTurboBeeCelery(ADSCelery):
         self._client = requests.Session()
         self._client.headers.update({'Authorization': 'Bearer:{}'.format(self.conf['API_TOKEN'])})
         self._err_counter = 0
+        self._tmpls = {}
     
     def _pick_bbb_url(self, url):
         """This method will return a hash version of an url;
@@ -95,19 +98,23 @@ class ADSTurboBeeCelery(ADSCelery):
         self.logger.info('Going to harvest: %s (and save as: %s)', bbb_url, official_url)
         html = self._load_url(bbb_url)
         message.target = official_url
-        
-        
-        # update tiemstamps
         message.set_value(html, message.ContentType.html)
+        
+        self._update_timestamps(message)
+        
+        return True
+
+
+    def _update_timestamps(self, message):
+        # update tiemstamps
         message.updated = message.get_timestamp()
         message.expires.seconds = message.updated.seconds + self.conf.get('BBB_EXPIRATION_SECS', 60*60*24) # 24h later
         message.eol.seconds = message.updated.seconds + self.conf.get('BBB_EOL_SECS', 60*60*24*90) # 3 months later
         
         if not message.created.seconds:
             message.created = message.updated
-        return True
-    
-    
+
+
     def _load_url(self, url):
         try:
             r = requests.post(self.conf.get('PUPPETEER_ENDPOINT', 'http://localhost:3001/scrape'),
@@ -188,5 +195,81 @@ class ADSTurboBeeCelery(ADSCelery):
             self.logger.warn('Cannot establish connection with the crawler; blocking for %s seconds', 2**self._err_counter )
             time.sleep(2**self._err_counter)
             
+    
+    def build_abstract_page(self, message):
+        """Will assemble BBBB abstract page using a template
+        and a data from the API."""
+        
+        if not message.target:
+            return None
+        
+        bibcode = url = message.target
+        if not (url.startswith('http') or url.startswith('//')):
+            bibcode = self.extract_bibcode(message.target)
+            if bibcode:
+                url = self.conf.get('BBB_ABS_PAGE', 'https://ui.adsabs.harvard.edu/abs/{}/abstract').format(bibcode)
+            else:
+                raise Exception('Sorry, dont know how to load webpage: {}'.format(message.target))
+        
+        
+        bbb_url, official_url = self._pick_bbb_url(url)
+        self.logger.info('Going to assemble: %s (and save as: %s)', bbb_url, official_url)
+        
+        # list of fields used by components that we care about
+        fl = '[citations],abstract,aff,author,bibcode,citation_count,comment,data,doi,esources,first_author,id,isbn,issn,issue,keyword,links_data,page,property,pub,pub_raw,pubdate,pubnote,read_count,title,volume,year'
+        
+        # on api failure error will be thrown and that triggers celery re-try
+        solr_response = self.search_api(q='identifier:' + bibcode, fl=fl)
+        abstract_tmpl = self.get_bbb_template('abstract', bbb_url)
+        
+        if solr_response['response']['numFound'] == 0:
+            self.logger.error('API found no doc with identifier:' + bibcode)
+            return None
+        elif solr_response['response']['numFound'] > 1:
+            self.logger.warn('API found too many docs for query identifier: %s; we are taking the first one' % bibcode)
+            
+        data = solr_response['response']['docs'][0]
+        tags = bumblebee.build_meta_tags(data)
+        abstract = bumblebee.build_abstract(data, max_authors=self.conf.get('BBB_ABSTRACT_MAX_AUTHORS', 8), 
+                                          gateway_url=self.conf.get('BBB_ABSTRACT_GATEWAY_URL', '/link_gateway/'))
+        
+        return abstract_tmpl % {'tags': tags, 'abstract': abstract}
+        
+
+        
+    def search_api(self, **kwargs):
+        r = self._client.get(self.conf.get('SEARCH_ENDPOINT'), params=kwargs)
+        r.raise_for_status()
+        return r.json()
+        
+        
+    def get_bbb_template(self, target_url):
+        """Finds the template that would work for a given url."""
+        parts = self._parse_bbb_url(target_url)
+        
+        pagename = parts['pagename']
+        domain = parts['domain']
+        
+         
+        if pagename == 'abstract':
+            if domain + ':' + pagename in self._tmpls:
+                return self._tmpls[domain + ':' + pagename]
+            tmpl = self._retrieve_abstract_template(target_url)
+            if tmpl is None:
+                raise Exception('Error harvesting page template for: ' + target_url)
+            self._tmpls[domain + ':' + pagename] = tmpl
+            return self._tmpls['abstract']
+        else:
+            raise Exception('Unknown page type: %s' % pagename)
+
+
+    def _retrieve_abstract_template(self, url):
+        msg = TurboBeeMsg(target=url)
+        self.harvest_webpage(msg)
+        
+        html = msg.get_value()
+        # TODO; find the sections and replace them with symbolic names {tags}, {abstract}....
+        
+        return html
         
         
