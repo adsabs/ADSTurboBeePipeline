@@ -1,21 +1,21 @@
+
+# -*- coding: utf-8 -*-
+
 from .models import KeyValue
 import adsputils
 from adsputils import get_date, setup_logging, load_config, ADSCelery, u2asc, ADSTask
-from contextlib import contextmanager
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session
-from sqlalchemy.orm import sessionmaker
 from adstb.exceptions import InvalidContent
 from adstb import bumblebee
 from adsmsg import TurboBeeMsg
 import time
 from requests.exceptions import ConnectionError
+from urlparse import urlparse
 
 try:
     from cStringIO import StringIO
 except:
     from StringIO import StringIO
-import urlparse
+
 
 import requests
 
@@ -94,12 +94,11 @@ class ADSTurboBeeCelery(ADSCelery):
                 raise Exception('Sorry, dont know how to load webpage: {}'.format(message.target))
         
         
-        bbb_url, official_url = self._pick_bbb_url(url)
-        self.logger.info('Going to harvest: %s (and save as: %s)', bbb_url, official_url)
-        html = self._load_url(bbb_url)
-        message.target = official_url
+        hash_url, pushstate_url = self._pick_bbb_url(url)
+        self.logger.info('Going to harvest: %s (and save as: %s)', hash_url, pushstate_url)
+        html = self._load_url(hash_url)
+        message.target = pushstate_url
         message.set_value(html, message.ContentType.html)
-        
         self._update_timestamps(message)
         
         return True
@@ -148,7 +147,7 @@ class ADSTurboBeeCelery(ADSCelery):
             raise InvalidContent('Cannot find closing tag of <head> element for: %s' % url)
         
         # insert base href
-        b = urlparse.urlparse(url)
+        b = urlparse(url)
         base = '\n<base href="' + b.scheme + '://' + b.netloc + '" />\n'
 
         return html[0:head_end+1] + base + html[head_end+1:]
@@ -196,44 +195,49 @@ class ADSTurboBeeCelery(ADSCelery):
             time.sleep(2**self._err_counter)
             
     
-    def build_abstract_page(self, message):
+    def build_static_page(self, message):
         """Will assemble BBBB abstract page using a template
         and a data from the API."""
         
         if not message.target:
             return None
         
-        bibcode = url = message.target
-        if not (url.startswith('http') or url.startswith('//')):
-            bibcode = self.extract_bibcode(message.target)
-            if bibcode:
-                url = self.conf.get('BBB_ABS_PAGE', 'https://ui.adsabs.harvard.edu/abs/{}/abstract').format(bibcode)
-            else:
-                raise Exception('Sorry, dont know how to load webpage: {}'.format(message.target))
+        url = message.target
+        parts = self._parse_bbb_url(url)
+        hash_url, pushstate_url = self._pick_bbb_url(url)
+        self.logger.info('Going to assemble: %s (and save as: %s)', hash_url, pushstate_url)
         
-        
-        bbb_url, official_url = self._pick_bbb_url(url)
-        self.logger.info('Going to assemble: %s (and save as: %s)', bbb_url, official_url)
-        
-        # list of fields used by components that we care about
-        fl = '[citations],abstract,aff,author,bibcode,citation_count,comment,data,doi,esources,first_author,id,isbn,issn,issue,keyword,links_data,page,property,pub,pub_raw,pubdate,pubnote,read_count,title,volume,year'
-        
-        # on api failure error will be thrown and that triggers celery re-try
-        solr_response = self.search_api(q='identifier:' + bibcode, fl=fl)
-        abstract_tmpl = self.get_bbb_template('abstract', bbb_url)
-        
-        if solr_response['response']['numFound'] == 0:
-            self.logger.error('API found no doc with identifier:' + bibcode)
-            return None
-        elif solr_response['response']['numFound'] > 1:
-            self.logger.warn('API found too many docs for query identifier: %s; we are taking the first one' % bibcode)
+        if parts['pagename'] == 'abs':
+            bibcode = parts.get('bibcode', None)
+            if bibcode is None:
+                raise Exception('Cannot identify bibcode in %s' % url)
             
-        data = solr_response['response']['docs'][0]
-        tags = bumblebee.build_meta_tags(data)
-        abstract = bumblebee.build_abstract(data, max_authors=self.conf.get('BBB_ABSTRACT_MAX_AUTHORS', 8), 
-                                          gateway_url=self.conf.get('BBB_ABSTRACT_GATEWAY_URL', '/link_gateway/'))
-        
-        return abstract_tmpl % {'tags': tags, 'abstract': abstract}
+            # list of fields used by components that we care about
+            fl = '[citations],abstract,aff,author,bibcode,citation_count,comment,data,doi,esources,first_author,id,isbn,issn,issue,keyword,links_data,page,property,pub,pub_raw,pubdate,pubnote,read_count,title,volume,year'
+            
+            # on api failure error will be thrown and that triggers celery re-try
+            solr_response = self.search_api(q='identifier:"%s"' % bibcode, fl=fl)
+            abstract_tmpl = self.get_bbb_template(hash_url)
+            
+            if solr_response['response']['numFound'] == 0:
+                self.logger.error('API found no doc with identifier:' + bibcode)
+                return None
+            elif solr_response['response']['numFound'] > 1:
+                self.logger.warn('API found too many docs for query identifier: %s; we are taking the first one' % bibcode)
+                
+            data = solr_response['response']['docs'][0]
+            tags = bumblebee.build_meta_tags(data)
+            abstract = bumblebee.build_abstract(data, max_authors=self.conf.get('BBB_ABSTRACT_MAX_AUTHORS', 8), 
+                                              gateway_url=self.conf.get('BBB_ABSTRACT_GATEWAY_URL', '/link_gateway/'))
+            
+            html = abstract_tmpl.replace(u'{{tags}}', tags).replace(u'{{abstract}}', abstract)
+
+            message.target = pushstate_url
+            message.set_value(html, message.ContentType.html)
+            self._update_timestamps(message)
+            
+            return True
+
         
 
         
@@ -241,6 +245,29 @@ class ADSTurboBeeCelery(ADSCelery):
         r = self._client.get(self.conf.get('SEARCH_ENDPOINT'), params=kwargs)
         r.raise_for_status()
         return r.json()
+        
+        
+    def _parse_bbb_url(self, url):
+        """Parses url and extracts domain information as well as bbb
+        pagename.
+        """
+        parts = urlparse(url)
+        out = {'url': url}
+        out['domain'] = parts.netloc
+        # remove :80 port, if any
+        if out['domain'].endswith(':80'):
+            out['domain'] = out['domain'][0:-3]
+            
+        if parts.path == '/' and len(parts.fragment) > 1:
+            out['pagename'] = parts.fragment.split('/')[0]
+            out['bibcode'] = parts.fragment.split('/')[1]
+        elif parts.path and len(parts.path) > 1:
+            out['pagename'] = parts.path.split('/')[1]
+            out['bibcode'] = parts.path.split('/')[2]
+        else:
+            out['pagename'] = 'unknown'
+            out['bibcode'] = None
+        return out 
         
         
     def get_bbb_template(self, target_url):
@@ -251,25 +278,63 @@ class ADSTurboBeeCelery(ADSCelery):
         domain = parts['domain']
         
          
-        if pagename == 'abstract':
+        if pagename == 'abs':
             if domain + ':' + pagename in self._tmpls:
                 return self._tmpls[domain + ':' + pagename]
             tmpl = self._retrieve_abstract_template(target_url)
             if tmpl is None:
                 raise Exception('Error harvesting page template for: ' + target_url)
             self._tmpls[domain + ':' + pagename] = tmpl
-            return self._tmpls['abstract']
+            return tmpl
         else:
             raise Exception('Unknown page type: %s' % pagename)
 
 
     def _retrieve_abstract_template(self, url):
         msg = TurboBeeMsg(target=url)
-        self.harvest_webpage(msg)
+        i = 0
+        
+        while not self.harvest_webpage(msg) and i < 3:
+            self.logger.warn('Retrying to fetch: ' + url)
+            i += 1
         
         html = msg.get_value()
-        # TODO; find the sections and replace them with symbolic names {tags}, {abstract}....
+        html = html.decode('utf8')
         
+        # some basic checks
+        if url not in html or 'data-widget="ShowAbstract"' not in html:
+            raise Exception("Failed to fetch a valid html page for: %s" % url)
+        
+        # TODO; find the sections and replace them with symbolic names {tags}, {abstract}....
+        x = html.find('data-highwire')
+        while x > 0:
+            x -= 1
+            if html[x] == '<':
+                break
+        
+        end = html.find('</head')
+        if end == -1 or x == 0:
+            raise Exception("Cannot find tags section")
+        
+        html = html[0:x] + '{{tags}}' + html[end:]
+        
+        
+        x = html.find('<article')
+        end = html.find('</article')
+        
+        if x == -1 or end == -1:
+            raise Exception("Cannot find abstract section")
+        
+        while x < len(html) and x < end:
+            x += 1
+            if html[x] == '>':
+                x += 1
+                break
+            
+        if x > end:
+            raise Exception("Cannot find abstract section")
+        
+        html = html[0:x] + '{{abstract}}' + html[end:]
         return html
         
         
