@@ -23,7 +23,7 @@ from adstb.models import KeyValue
 
 app = tasks.app
 
-def harvest_by_query(query, queue='harvest-bumblebee', 
+def harvest_by_query(query, queue='static-bumblebee', 
                      tmpl='https://dev.adsabs.harvard.edu/#abs/%(bibcode)s/abstract', 
                      **kwargs):
     """
@@ -64,7 +64,13 @@ def harvest_by_query(query, queue='harvest-bumblebee',
     
     def submit(bibcode):
         msg = TurboBeeMsg(target=tmpl % {'bibcode': bibcode})
-        tasks.task_harvest_bumblebee.delay(msg)
+        if queue == 'harvest-bumblebee':
+            tasks.task_harvest_bumblebee.delay(msg)
+        elif queue == 'static-bumblebee':
+            tasks.task_static_bumblebee.delay(msg)
+        else:
+            raise Exception('Unknown target: %s' % queue)
+        
     
     i = 0
     start = params.get('start', 0)
@@ -153,10 +159,15 @@ def harvest_by_null(queue='priority-bumblebee',
     print i, last_id
 
 
-def submit_url(url):    
+def submit_url(url, queue='harvest-bumblebee'):    
     """Submits a specific URL for processing."""
     msg = TurboBeeMsg(target=url)
-    tasks.task_harvest_bumblebee.delay(msg)
+    if queue == 'harvest-bumblebee':
+        tasks.task_harvest_bumblebee.delay(msg)
+    elif queue == 'static-bumblebee':
+        tasks.task_static_bumblebee.delay(msg)
+    else:
+        raise Exception('Unknown target: %s' % queue)
 
 
 def print_kvs():    
@@ -210,6 +221,13 @@ if __name__ == '__main__':
                         default=False,
                         help='Show current values of KV store')
     
+    parser.add_argument('-t', 
+                        '--queue', 
+                        dest='queue', 
+                        action='store',
+                        default='static-bumblebee',
+                        help='Influence where to submit a task (into what queue)')
+    
     args = parser.parse_args()
     
     
@@ -217,7 +235,7 @@ if __name__ == '__main__':
         print_kvs()
 
     if args.harvest_by_query:
-        harvest_by_query(args.harvest_by_query, tmpl=args.url_tmpl)
+        harvest_by_query(args.harvest_by_query, tmpl=args.url_tmpl, queue=args.queue)
         
     if args.harvest_null_objects:
         harvest_by_null()

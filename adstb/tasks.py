@@ -19,12 +19,28 @@ app.conf.CELERY_QUEUES = (
     Queue('harvest-bumblebee', exch, routing_key='bumblebee'),
     Queue('output-results', exch, routing_key='output'),
     Queue('priority-bumblebee', exch, routing_key='priority'),
+    Queue('static-bumblebee', exch, routing_key='static-bumblebee'),
 )
 
 
 
 
 # ============================= TASKS ============================================= #
+
+@app.task(queue='static-bumblebee')
+def task_static_bumblebee(message):
+    """
+    Will generate abstract pages using templates
+    
+
+    :param: message: protocol buffer of type TurboBeeMsg
+    :return: no return
+    """
+    
+    if message.target:
+        v = app.build_static_page(message)
+        if v:
+            task_output_results.delay(message)
 
 
 @app.task(queue='harvest-bumblebee')
