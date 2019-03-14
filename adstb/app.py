@@ -304,7 +304,7 @@ class ADSTurboBeeCelery(ADSCelery):
         html = html.decode('utf8')
         
         # some basic checks
-        if url not in html or 'data-widget="ShowAbstract"' not in html:
+        if 'data-widget="ShowAbstract"' not in html:
             raise Exception("Failed to fetch a valid html page for: %s" % url)
         
         x = html.find('data-highwire')
