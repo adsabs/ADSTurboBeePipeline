@@ -92,14 +92,19 @@ class TestTurboBeeCelery(unittest.TestCase):
             assert loader.called
             assert '{{tags}}' in tmpl
             assert '{{abstract}}' in tmpl
+            assert '{{bibcode}}' in tmpl
+            assert '__PRERENDERED' in tmpl
+            
             assert '{{tags}}' not in html
             assert '{{abstract}}' not in html
+            assert '{{bibcode}}' not in html
             assert loader.call_count == 1
             
             
             tmpl = self.app.get_bbb_template('https://ui.adsabs.harvard.edu/#abs/2019LRR....22....1I/abstract')
             assert loader.call_count == 1
-            
+
+
     def test_build_abstract_page(self):
         msg = TurboBeeMsg(target='https://ui.adsabs.harvard.edu/#abs/2019LRR....22....1I/abstract')
         
@@ -115,6 +120,8 @@ class TestTurboBeeCelery(unittest.TestCase):
             p = msg.get_value().decode('utf8')
             assert u'og:image' in p
             assert u'We review recent' in p
+
+
     
 if __name__ == '__main__':
     unittest.main()

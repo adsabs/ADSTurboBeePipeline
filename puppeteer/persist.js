@@ -20,7 +20,8 @@ if (!window.__PERSIST) {
             '.popover',
             '.back-button',
             '.s-library-area',
-            '.icon-clear'
+            '.icon-clear',
+            '.alert-banner'
         ];
         
 
@@ -33,12 +34,13 @@ if (!window.__PERSIST) {
         .attr('href', '#');
         $('form[name="main-query"] input', $body).addClass('disabled');
         $('form[name="main-query"] button[type="submit"]>i', $body).addClass('disabled fa-spin fa-spinner');
-        var $dom = $('<html></html>').append($head).append($body);
+        
         $head.append('<script>window.__PRERENDERED = true;</script>');
         
         $('base', $head).remove();
         $head.prepend($('<base href="/">'));
 
+        var $dom = $('<html></html>').append($head).append($body);
         var html = $dom[0].outerHTML.replace('var progressValue = 0', 'var progressValue = 100');
         var i = html.indexOf('// Progress Bar');
         var j = html.indexOf('})()', i);

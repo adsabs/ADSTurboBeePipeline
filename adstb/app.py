@@ -294,6 +294,8 @@ class ADSTurboBeeCelery(ADSCelery):
         msg = TurboBeeMsg(target=url)
         i = 0
         
+        parts = self._parse_bbb_url(url)
+        
         while not self.harvest_webpage(msg) and i < 3:
             self.logger.warn('Retrying to fetch: ' + url)
             i += 1
@@ -305,18 +307,25 @@ class ADSTurboBeeCelery(ADSCelery):
         if url not in html or 'data-widget="ShowAbstract"' not in html:
             raise Exception("Failed to fetch a valid html page for: %s" % url)
         
-        # TODO; find the sections and replace them with symbolic names {tags}, {abstract}....
         x = html.find('data-highwire')
         while x > 0:
             x -= 1
             if html[x] == '<':
                 break
         
-        end = html.find('</head')
+        end = html.find('data-highwire', x)
+        while html.find('data-highwire', end+1) > 0:
+            end = html.find('data-highwire', end+1)
+
+        
+        while html[end] != '>':
+            end += 1
+        
+            
         if end == -1 or x == 0:
             raise Exception("Cannot find tags section")
         
-        html = html[0:x] + '{{tags}}' + html[end:]
+        html = html[0:x] + '{{tags}}' + html[end+1:]
         
         
         x = html.find('<article')
@@ -335,6 +344,10 @@ class ADSTurboBeeCelery(ADSCelery):
             raise Exception("Cannot find abstract section")
         
         html = html[0:x] + '{{abstract}}' + html[end:]
+        
+        if 'bibcode' in parts and parts['bibcode']:
+            html = html.replace(parts['bibcode'], u'{{bibcode}}')
+        
         return html
         
         
