@@ -83,6 +83,7 @@ def task_output_results(message):
     :return: no return
     """
     
+    app.logger.warn('in task_output_results with {}'.format(str(message)[:100]))
     qid = app.update_store(message)
     app.logger.debug('Delivered: qid=%s, target=%s', qid, message.target)
     

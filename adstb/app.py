@@ -9,6 +9,7 @@ from adstb import bumblebee
 from adsmsg import TurboBeeMsg
 import time
 from requests.exceptions import ConnectionError
+import traceback
 from urlparse import urlparse
 
 try:
@@ -100,7 +101,6 @@ class ADSTurboBeeCelery(ADSCelery):
         message.target = pushstate_url
         message.set_value(html, message.ContentType.html)
         self._update_timestamps(message)
-        
         return True
 
 
@@ -116,13 +116,18 @@ class ADSTurboBeeCelery(ADSCelery):
 
     def _load_url(self, url):
         try:
+            self.logger.info('trying to load url {} at endpoint: {}'.format(url, self.conf.get('PUPPETEER_ENDPOINT')))
             r = requests.post(self.conf.get('PUPPETEER_ENDPOINT', 'http://localhost:3001/scrape'),
                 json=[url])
             r.raise_for_status()
+            self.logger.info('success loaded page at {} with encoding {} and {}'.format(url, r.encoding, r))
             self._err_counter = 0
-            return r.json()[url]
-        except Exception, e:
+            j = r.json()
+            return j[url]
+        except Exception as e:
             self._err_counter += 1
+            self.logger.error('_load_url original error {}'.format(traceback.format_exc()))
+            self.logger.error('_load_url failed for url {} with {}'.format(url, str(e)))
             raise e
 
     def _massage_page(self, url, html):
@@ -170,6 +175,7 @@ class ADSTurboBeeCelery(ADSCelery):
         :param: message - protobuf of TurboBeeMsg
         :return: qid - qid when operation succeeded
         """
+        self.logger.warn('updating store with {}'.format(str(message)[:30]))
         r = self._post(self.conf.get('UPDATE_ENDPOINT'), message)
         r.raise_for_status()
         return r
@@ -272,6 +278,7 @@ class ADSTurboBeeCelery(ADSCelery):
         
     def get_bbb_template(self, target_url):
         """Finds the template that would work for a given url."""
+        target_url = target_url.strip()
         parts = self._parse_bbb_url(target_url)
         
         pagename = parts['pagename']
@@ -294,45 +301,39 @@ class ADSTurboBeeCelery(ADSCelery):
         msg = TurboBeeMsg(target=url)
         i = 0
         
-        parts = self._parse_bbb_url(url)
-        
         while not self.harvest_webpage(msg) and i < 3:
             self.logger.warn('Retrying to fetch: ' + url)
             i += 1
-        
+
         html = msg.get_value()
         html = html.decode('utf8')
-        
+
+
         # some basic checks
-        if 'data-widget="ShowAbstract"' not in html:
-            raise Exception("Failed to fetch a valid html page for: %s" % url)
-        
+        # if url not in html or 'data-widget="ShowAbstract"' not in html:
+        # I think the entire url string is not in html, need to re-evaluate
+        if 'data-widget="ShowAbstract"' not in html:            
+            raise Exception('Cannot process fetched page, or data-widget for {}'.format(url))
+        self.logger.info(' retrieve abstract first check!!')        
+        # TODO; find the sections and replace them with symbolic names {tags}, {abstract}....
         x = html.find('data-highwire')
         while x > 0:
             x -= 1
             if html[x] == '<':
                 break
         
-        end = html.find('data-highwire', x)
-        while html.find('data-highwire', end+1) > 0:
-            end = html.find('data-highwire', end+1)
-
-        
-        while html[end] != '>':
-            end += 1
-        
-            
+        end = html.find('</head')
         if end == -1 or x == 0:
-            raise Exception("Cannot find tags section")
+            raise Exception('Cannot process fetched page, cannot find tags section for {}.'.format(url))
         
-        html = html[0:x] + '{{tags}}' + html[end+1:]
+        html = html[0:x] + '{{tags}}' + html[end:]
         
         
         x = html.find('<article')
         end = html.find('</article')
         
         if x == -1 or end == -1:
-            raise Exception("Cannot find abstract section")
+            raise Exception('Cannot process fetched page, cannot find abstract section for {}'.format(url))
         
         while x < len(html) and x < end:
             x += 1
@@ -341,13 +342,9 @@ class ADSTurboBeeCelery(ADSCelery):
                 break
             
         if x > end:
-            raise Exception("Cannot find abstract section")
+            raise Exception('Cannot process fetched page, cannot find abstract section for {}'.format(url))
         
         html = html[0:x] + '{{abstract}}' + html[end:]
-        
-        if 'bibcode' in parts and parts['bibcode']:
-            html = html.replace(parts['bibcode'], u'{{bibcode}}')
-        
         return html
         
         
