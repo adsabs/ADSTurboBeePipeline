@@ -55,7 +55,8 @@ meta_tags_tmpl = u'''<meta name="og:type" content="article" data-highwire="true"
 {{/each}}
 {{#if pdfUrl}}
 <meta name="citation_pdf_url" content="{{pdfUrl}}" data-highwire="true">
-{{/if}}'''
+{{/if}}
+<script>window.__PRERENDERED = true;</script>'''
 
 
 
