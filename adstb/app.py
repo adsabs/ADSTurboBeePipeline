@@ -219,7 +219,7 @@ class ADSTurboBeeCelery(ADSCelery):
                 raise Exception('Cannot identify bibcode in %s' % url)
             
             # list of fields used by components that we care about
-            fl = '[citations],abstract,aff,author,bibcode,citation_count,comment,data,doi,esources,first_author,id,isbn,issn,issue,keyword,links_data,page,property,pub,pub_raw,pubdate,pubnote,read_count,title,volume,year'
+            fl = '[citations],abstract,aff,author,bibcode,citation_count,comment,data,doi,esources,first_author,id,identifier,isbn,issn,issue,keyword,links_data,page,page_range,property,pub,pub_raw,pubdate,pubnote,read_count,title,volume,year'
             
             # on api failure error will be thrown and that triggers celery re-try
             solr_response = self.search_api(q='identifier:"%s"' % bibcode, fl=fl)
@@ -232,7 +232,7 @@ class ADSTurboBeeCelery(ADSCelery):
                 self.logger.warn('API found too many docs for query identifier: %s; we are taking the first one' % bibcode)
                 
             data = solr_response['response']['docs'][0]
-            tags = bumblebee.build_meta_tags(data)
+            tags = bumblebee.build_meta_tags(data, self.conf)
             abstract = bumblebee.build_abstract(data, max_authors=self.conf.get('BBB_ABSTRACT_MAX_AUTHORS', 8), 
                                               gateway_url=self.conf.get('BBB_ABSTRACT_GATEWAY_URL', '/link_gateway/'))
             
@@ -314,7 +314,6 @@ class ADSTurboBeeCelery(ADSCelery):
         # I think the entire url string is not in html, need to re-evaluate
         if 'data-widget="ShowAbstract"' not in html:            
             raise Exception('Cannot process fetched page, or data-widget for {}'.format(url))
-        self.logger.info(' retrieve abstract first check!!')        
         # TODO; find the sections and replace them with symbolic names {tags}, {abstract}....
         x = html.find('data-highwire')
         while x > 0:
@@ -343,8 +342,17 @@ class ADSTurboBeeCelery(ADSCelery):
             
         if x > end:
             raise Exception('Cannot process fetched page, cannot find abstract section for {}'.format(url))
-        
+
         html = html[0:x] + '{{abstract}}' + html[end:]
+
+        # finally, cut out noscript warning that says javascript is required
+        x = html.find('<div id="noscriptmsg"')  # div id within noscript
+        if x > -1:
+            start = html.rfind('<noscript', 0, x)
+            end = html.find('</noscript>', start) + len('</noscript>')
+            if end > start:
+                html = html[:start] + html[end:]
+
         return html
         
         

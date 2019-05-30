@@ -29,3 +29,4 @@ PUPPETEER_ENDPOINT = 'http://localhost:3001/scrape'
 UPDATE_ENDPOINT = 'https://devapi.adsabs.harvard.edu/v1/store/update'
 SEARCH_ENDPOINT = 'https://devapi.adsabs.harvard.edu/v1/search/query'
 STORE_SEARCH_ENDPOINT = 'https://devapi.adsabs.harvard.edu/v1/store/search'
+LINK_URL_TEMPLATE = 'http://dev.adsabs.harvard.edu/abs/{}'  # used for links in meta tags
