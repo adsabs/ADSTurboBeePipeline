@@ -40,6 +40,7 @@ def create_app(app_name='adstb',
 # valid url patterns in BBB
 bbb_paths = ('search', 'abs', 'user', 'index', 'execute-query')
 
+
 class ADSTurboBeeCelery(ADSCelery):
     
     def __init__(self, *args, **kwargs):
@@ -77,7 +78,6 @@ class ADSTurboBeeCelery(ADSCelery):
         # default, do nothing
         return url, url
                 
-        
     def harvest_webpage(self, message):
         """Loads a bumblebee page; it reuses js client. After the page
         has been loaded (all api requests) done, it will get the 
@@ -103,7 +103,6 @@ class ADSTurboBeeCelery(ADSCelery):
         self._update_timestamps(message)
         return True
 
-
     def _update_timestamps(self, message):
         # update tiemstamps
         message.updated = message.get_timestamp()
@@ -113,14 +112,13 @@ class ADSTurboBeeCelery(ADSCelery):
         if not message.created.seconds:
             message.created = message.updated
 
-
     def _load_url(self, url):
         try:
-            self.logger.info('trying to load url {} at endpoint: {}'.format(url, self.conf.get('PUPPETEER_ENDPOINT')))
+            self.logger.debug('trying to load url {} at endpoint: {}'.format(url, self.conf.get('PUPPETEER_ENDPOINT')))
             r = requests.post(self.conf.get('PUPPETEER_ENDPOINT', 'http://localhost:3001/scrape'),
                 json=[url])
             r.raise_for_status()
-            self.logger.info('success loaded page at {} with encoding {} and {}'.format(url, r.encoding, r))
+            self.logger.debug('success loaded page at {} with encoding {} and {}'.format(url, r.encoding, r))
             self._err_counter = 0
             j = r.json()
             return j[url]
@@ -157,7 +155,6 @@ class ADSTurboBeeCelery(ADSCelery):
 
         return html[0:head_end+1] + base + html[head_end+1:]
 
-
     def extract_bibcode(self, url_or_target):
         v = url_or_target
         if len(v) == 19:
@@ -167,7 +164,7 @@ class ADSTurboBeeCelery(ADSCelery):
             if len(parts) > 1:
                 return parts[1][0:19]
         else:
-            return None # can't find it
+            return None  # can't find it
         
     def update_store(self, message):
         """Delivers the message to the remote api side.
@@ -175,12 +172,21 @@ class ADSTurboBeeCelery(ADSCelery):
         :param: message - protobuf of TurboBeeMsg
         :return: qid - qid when operation succeeded
         """
-        self.logger.warn('updating store with {}'.format(str(message)[:30]))
+        self.logger.info('updating store with {}'.format(str(message)[:30]))
         r = self._post(self.conf.get('UPDATE_ENDPOINT'), message)
         r.raise_for_status()
         return r
-        
-        
+
+    def iscachable(target):
+        """Returns True if the passed target should be processed """
+        if target.endswith('.ico'):
+            # we don't cache icons
+            return False
+        if '/doi:' in target:
+            # abstract urls with a doi are not currently supported by bumblebee
+            return False
+        return True
+
     def _post(self, url, messages):
         if not isinstance(messages, list):
             messages = [messages]
@@ -192,14 +198,12 @@ class ADSTurboBeeCelery(ADSCelery):
             i += 1
         return self._client.post(url, files=out)
 
-
     def attempt_recovery(self, task, args=None, kwargs=None, einfo=None, retval=None):
         """Block if we get connection error"""
         
         if isinstance(retval, ConnectionError):
             self.logger.warn('Cannot establish connection with the crawler; blocking for %s seconds', 2**self._err_counter )
             time.sleep(2**self._err_counter)
-            
     
     def build_static_page(self, message):
         """Will assemble BBBB abstract page using a template
@@ -244,14 +248,10 @@ class ADSTurboBeeCelery(ADSCelery):
             
             return True
 
-        
-
-        
     def search_api(self, **kwargs):
         r = self._client.get(self.conf.get('SEARCH_ENDPOINT'), params=kwargs)
         r.raise_for_status()
         return r.json()
-        
         
     def _parse_bbb_url(self, url):
         """Parses url and extracts domain information as well as bbb
@@ -275,7 +275,6 @@ class ADSTurboBeeCelery(ADSCelery):
             out['bibcode'] = None
         return out 
         
-        
     def get_bbb_template(self, target_url):
         """Finds the template that would work for a given url."""
         target_url = target_url.strip()
@@ -284,7 +283,6 @@ class ADSTurboBeeCelery(ADSCelery):
         pagename = parts['pagename']
         domain = parts['domain']
         
-         
         if pagename == 'abs':
             if domain + ':' + pagename in self._tmpls:
                 return self._tmpls[domain + ':' + pagename]
@@ -295,7 +293,6 @@ class ADSTurboBeeCelery(ADSCelery):
             return tmpl
         else:
             raise Exception('Unknown page type: %s' % pagename)
-
 
     def _retrieve_abstract_template(self, url):
         msg = TurboBeeMsg(target=url)
@@ -308,10 +305,7 @@ class ADSTurboBeeCelery(ADSCelery):
         html = msg.get_value()
         html = html.decode('utf8')
 
-
         # some basic checks
-        # if url not in html or 'data-widget="ShowAbstract"' not in html:
-        # I think the entire url string is not in html, need to re-evaluate
         if 'data-widget="ShowAbstract"' not in html:            
             raise Exception('Cannot process fetched page, or data-widget for {}'.format(url))
         # TODO; find the sections and replace them with symbolic names {tags}, {abstract}....
@@ -326,7 +320,6 @@ class ADSTurboBeeCelery(ADSCelery):
             raise Exception('Cannot process fetched page, cannot find tags section for {}.'.format(url))
         
         html = html[0:x] + '{{tags}}' + html[end:]
-        
         
         x = html.find('<article')
         end = html.find('</article')

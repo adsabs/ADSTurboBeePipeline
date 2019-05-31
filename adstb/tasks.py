@@ -72,8 +72,6 @@ def task_harvest_bumblebee(message):
 def task_priority_queue(message):
     return task_harvest_bumblebee(message)
 
-        
-    
 @app.task(queue='output-results', retry_limit=2)
 def task_output_results(message):
     """Receives the messages from the workers and updates
@@ -86,7 +84,6 @@ def task_output_results(message):
     app.logger.warn('in task_output_results with {}'.format(str(message)[:100]))
     qid = app.update_store(message)
     app.logger.debug('Delivered: qid=%s, target=%s', qid, message.target)
-    
     
 
 if __name__ == '__main__':

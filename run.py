@@ -69,7 +69,6 @@ def harvest_by_query(query, queue='static-bumblebee',
         else:
             raise Exception('Unknown target: %s' % queue)
         
-    
     i = 0
     start = params.get('start', 0)
     while True:
@@ -83,8 +82,6 @@ def harvest_by_query(query, queue='static-bumblebee',
             app.logger.info('Done: {0}/{1}'.format(start, j['response']['numFound']))
             print 'Done submitting: {0}/{1}'.format(start, j['response']['numFound'])
         except Exception, e:
-            import pdb
-            pdb.set_trace()
             print 'Exception', str(e)
     
         
@@ -122,12 +119,10 @@ def harvest_by_null(queue='priority-bumblebee',
     while True:
         # reuse the http ads api client with keep-alive connections and bearer token
         r = app._client.get(url, params=params)
-        import pdb
-        pdb.set_trace()
         r.raise_for_status()
         j = i
         for d in r.json():
-            if iscachable(d['target']):
+            if app.iscachable(d['target']):
                 msg = TurboBeeMsg(target=d['target'],
                                   qid=d['qid'])
             
@@ -138,7 +133,7 @@ def harvest_by_null(queue='priority-bumblebee',
             if d['id'] in seen:
                 break
             seen.add(d['id'])
-            i+= 1
+            i += 1
             
             if max_num > 0 and i > max_num:
                 break
@@ -156,22 +151,10 @@ def harvest_by_null(queue='priority-bumblebee',
                 kv.value = last_id
             session.commit()
     
-        
     app.logger.info('Done submitting {0} pages.'.format(i))
     print i, last_id
 
     
-def iscachable(target):
-    """Returns True if the passed target should be processed """
-    if target.endswith('.ico'):
-        # we don't cache icons
-        return False
-    if '/doi:' in target:
-        # urls with a doi are not currently supported by bumblebee
-        return False
-    return True
-
-
 def submit_url(url, queue='harvest-bumblebee'):    
     """Submits a specific URL for processing."""
     msg = TurboBeeMsg(target=url)

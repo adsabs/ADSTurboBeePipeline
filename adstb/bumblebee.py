@@ -213,6 +213,7 @@ meta_template = compiler.compile(meta_tags_tmpl)
 acompiler = Compiler()
 abstract_template = acompiler.compile(abstract_tmpl)
 
+
 def build_meta_tags(solrdoc, conf={}):
     """Builds meta tags section that is inserted into HTML of a page;
     it receives a solr document which must have at least those
@@ -253,6 +254,7 @@ def build_meta_tags(solrdoc, conf={}):
 
 htmlParser = HTMLParser()
 tag_re = re.compile(r'<[^>]+>')
+
 
 def _html_to_text(t):
     """remove html tags and clean html encoded characters and return plain text string"""
