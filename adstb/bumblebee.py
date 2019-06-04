@@ -16,6 +16,7 @@ meta_tags_tmpl = u'''<meta name="og:type" content="article" data-highwire="true"
 <meta name="og:title" content="{{title}}" data-highwire="true">
 <meta name="twitter:title" content="{{title}}" data-highwire="true">
 <meta name="dc.title" content="{{title}}" data-highwire="true">
+<title>{{title}}</title> 
 
 <meta name="og:url" content="{{url}}" data-highwire="true">
 <meta name="twitter:url" content="{{url}}" data-highwire="true">

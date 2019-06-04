@@ -345,6 +345,11 @@ class ADSTurboBeeCelery(ADSCelery):
             end = html.find('</noscript>', start) + len('</noscript>')
             if end > start:
                 html = html[:start] + html[end:]
+        # and the first noscript that includes a style                                                                          x = html.find('<noscript><style>')
+        if x > -1:
+            end = html.find('</style></noscript>') + len('</style></noscript>')
+            if end > x:
+                html = html[:x] + html[end:]
 
         return html
         
