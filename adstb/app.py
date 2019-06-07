@@ -345,11 +345,14 @@ class ADSTurboBeeCelery(ADSCelery):
             end = html.find('</noscript>', start) + len('</noscript>')
             if end > start:
                 html = html[:start] + html[end:]
-        # and the first noscript that includes a style                                                                          x = html.find('<noscript><style>')
+        # and the first noscript that includes a style, it hides the abstract div
+        x = html.find('<noscript>')
         if x > -1:
-            end = html.find('</style></noscript>') + len('</style></noscript>')
-            if end > x:
-                html = html[:x] + html[end:]
+            offset = x + len('<noscript>')
+            if html[offset:].strip().startswith('<style>'):
+                end = html.find('</noscript>') + len('</noscript>')
+                if end > x:
+                    html = html[:x] + html[end:]
 
         return html
         

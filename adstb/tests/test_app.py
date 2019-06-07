@@ -115,6 +115,7 @@ class TestTurboBeeCelery(unittest.TestCase):
             assert u'og:image' in p
             assert u'We review recent' in p
             assert u'ADS requires JavaScript' not in p
+            assert u'#app-container' not in p
     
 if __name__ == '__main__':
     unittest.main()
