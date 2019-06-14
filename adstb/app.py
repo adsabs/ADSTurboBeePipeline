@@ -343,7 +343,7 @@ class ADSTurboBeeCelery(ADSCelery):
         html = html[0:x] + '{{abstract}}' + html[end:]
 
         # finally, cut out noscript warning that says javascript is required
-        x = html.find('<div id="noscriptmsg"')  # div id within noscript
+        x = html.find('id="noscriptmsg"')  # div id within noscript
         if x > -1:
             start = html.rfind('<noscript', 0, x)
             end = html.find('</noscript>', start) + len('</noscript>')
