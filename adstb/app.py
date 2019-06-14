@@ -314,12 +314,16 @@ class ADSTurboBeeCelery(ADSCelery):
             x -= 1
             if html[x] == '<':
                 break
-        
-        end = html.find('</head')
+        end = html.find('data-highwire', x)
+        while html.find('data-highwire', end+1) > 0:
+            end = html.find('data-highwire', end+1)
+
+        while html[end] != '>':
+            end += 1
         if end == -1 or x == 0:
-            raise Exception('Cannot process fetched page, cannot find tags section for {}.'.format(url))
-        
-        html = html[0:x] + '{{tags}}' + html[end:]
+            raise Exception("Cannot find tags section")
+        html = html[0:x] + '{{tags}}' + html[end+1:]
+
         
         x = html.find('<article')
         end = html.find('</article')
