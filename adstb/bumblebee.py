@@ -245,11 +245,6 @@ def build_meta_tags(solrdoc, conf={}):
         data['lastpage'] = data['page_range'].split('-')[1]
     if 'title' in data:
         data['title'] = _html_to_text(data['title'][0])
-    link_url_template = 'http://dev.adsabs.harvard.edu/abs/{}'
-    if 'LINK_URL_TEMPLATE' in conf:
-        data['url'] = conf['LINK_URL_TEMPLATE'].format(data['bibcode'])
-    # http://adsabs.harvard.edu/abs/2019arXiv190509280Z
-    
     return ''.join(meta_template(data))
 
 
