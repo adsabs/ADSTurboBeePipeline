@@ -297,6 +297,8 @@ class ADSTurboBeeCelery(ADSCelery):
     def _retrieve_abstract_template(self, url):
         msg = TurboBeeMsg(target=url)
         i = 0
+
+        parts = self._parse_bbb_url(url)
         
         while not self.harvest_webpage(msg) and i < 3:
             self.logger.warn('Retrying to fetch: ' + url)
@@ -341,6 +343,9 @@ class ADSTurboBeeCelery(ADSCelery):
             raise Exception('Cannot process fetched page, cannot find abstract section for {}'.format(url))
 
         html = html[0:x] + '{{abstract}}' + html[end:]
+
+        if 'bibcode' in parts and parts['bibcode']:
+            html = html.replace(parts['bibcode'], u'{{bibcode}}')
 
         # finally, cut out noscript warning that says javascript is required
         x = html.find('id="noscriptmsg"')  # div id within noscript
