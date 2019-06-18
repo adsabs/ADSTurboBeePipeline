@@ -2,7 +2,8 @@
 # serves as a running log of claims and storage of author-related
 # information). It is not consumed by others (ie. we 'push' results) 
 # SQLALCHEMY_URL = 'postgres://docker:docker@localhost:6432/docker'
-SQLALCHEMY_URL = 'postgres://turbobee_pipeline:turbobee_pipeline@localhost:15432/turbobee_pipeline'
+# SQLALCHEMY_URL = 'postgres://turbobee_pipeline:turbobee_pipeline@localhost:15432/turbobee_pipeline'
+SQLALCHEMY_URL = 'sqlite:///'
 SQLALCHEMY_ECHO = False
 
 
