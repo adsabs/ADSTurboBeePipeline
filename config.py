@@ -1,8 +1,6 @@
-# Connection to the database where we save orcid-claims (this database
-# serves as a running log of claims and storage of author-related
-# information). It is not consumed by others (ie. we 'push' results) 
-# SQLALCHEMY_URL = 'postgres://docker:docker@localhost:6432/docker'
-SQLALCHEMY_URL = 'postgres://turbobee_pipeline:turbobee_pipeline@localhost:15432/turbobee_pipeline'
+
+# SQLALCHEMY_URL = 'postgres://turbobee_pipeline:turbobee_pipeline@localhost:15432/turbobee_pipeline'
+SQLALCHEMY_URL = 'sqlite:///'
 SQLALCHEMY_ECHO = False
 
 
@@ -29,3 +27,4 @@ PUPPETEER_ENDPOINT = 'http://localhost:3001/scrape'
 UPDATE_ENDPOINT = 'https://devapi.adsabs.harvard.edu/v1/store/update'
 SEARCH_ENDPOINT = 'https://devapi.adsabs.harvard.edu/v1/search/query'
 STORE_SEARCH_ENDPOINT = 'https://devapi.adsabs.harvard.edu/v1/store/search'
+LINK_URL_TEMPLATE = 'http://dev.adsabs.harvard.edu/abs/{}'  # used for links in meta tags

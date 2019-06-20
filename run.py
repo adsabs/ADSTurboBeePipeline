@@ -42,10 +42,7 @@ def harvest_by_query(query, queue='static-bumblebee',
     app.logger.info('Loading all records for: {0} from: {1}'.format(params, app.conf.get('SEARCH_ENDPOINT')))
     url = app.conf.get('SEARCH_ENDPOINT', 'https://api.adsabs.harvard.edu/v1/search/query')
     
-    # reuse the http client with keep-alive connections
-    client = app._client
-    
-    # that's all we care for
+    # returned fields from solr we care about
     params['fl'] = 'bibcode'
     
     if 'sort' not in params:
@@ -59,7 +56,8 @@ def harvest_by_query(query, queue='static-bumblebee',
     def query(start, rows=1000):
         params['start'] = start
         params['rows'] = rows
-        r = client.get(url, params=params)
+        # reuse ads api http client with keep-alive connections and bearer token        
+        r = app._client.get(url, params=params)
         return start+rows, r.json()
     
     def submit(bibcode):
@@ -71,7 +69,6 @@ def harvest_by_query(query, queue='static-bumblebee',
         else:
             raise Exception('Unknown target: %s' % queue)
         
-    
     i = 0
     start = params.get('start', 0)
     while True:
@@ -95,8 +92,11 @@ def harvest_by_null(queue='priority-bumblebee',
                     max_num=-1,
                     **kwargs):
     """
-    Given a SOLR query, it will harvest ALL rows that have empty
-    timestamp (entries, that should be built).
+    Process bibcodes retrived by a {'null': True} query to ads api /v1/store/search endpoint.
+    This endpoint returns ~50 records.  Passing null selects rows of pages where created==None.  
+    These rows includes a target field which is a url without the protocol 
+    (e.g., //dev.adsabs.harvard.edu/abs/1997A%26A...326..950F/styles/img/favicon.ico or 
+    //devui.adsabs.harvard.edu/abs/doi:10.1117/12.2314185).
     
     :param: queue - where to send the claims
     
@@ -104,12 +104,7 @@ def harvest_by_null(queue='priority-bumblebee',
     """
     
     url = app.conf.get('STORE_SEARCH_ENDPOINT', 'https://api.adsabs.harvard.edu/v1/store/search')
-    
-    # reuse the http client with keep-alive connections
-    client = app._client
     params = {'null': True}
-    
-    
     
     i = 0
     seen = set()
@@ -119,24 +114,26 @@ def harvest_by_null(queue='priority-bumblebee',
             last_id = kv.value
         else:
             last_id = -1 
-                
-    
+    app.logger.info('harvest_by_null running with last_id of {}'.format(last_id))
+
     while True:
-        r = client.get(url, params=params)
+        # reuse the http ads api client with keep-alive connections and bearer token
+        r = app._client.get(url, params=params)
         r.raise_for_status()
         j = i
         for d in r.json():
-            msg = TurboBeeMsg(target=d['target'],
-                              qid=d['qid'])
+            if app.iscachable(d['target']):
+                msg = TurboBeeMsg(target=d['target'],
+                                  qid=d['qid'])
             
-            
-            tasks.task_priority_queue.delay(msg)
+                app.logger.info('harvest_by_null queuing target {}'.format(d['target']))
+                tasks.task_priority_queue.delay(msg)
             params['last_id'] = d['id']
             last_id = d['id']
             if d['id'] in seen:
                 break
             seen.add(d['id'])
-            i+= 1
+            i += 1
             
             if max_num > 0 and i > max_num:
                 break
@@ -154,11 +151,10 @@ def harvest_by_null(queue='priority-bumblebee',
                 kv.value = last_id
             session.commit()
     
-        
     app.logger.info('Done submitting {0} pages.'.format(i))
     print i, last_id
 
-
+    
 def submit_url(url, queue='harvest-bumblebee'):    
     """Submits a specific URL for processing."""
     msg = TurboBeeMsg(target=url)
@@ -227,6 +223,11 @@ if __name__ == '__main__':
                         action='store',
                         default='static-bumblebee',
                         help='Influence where to submit a task (into what queue)')
+    parser.add_argument('-f',
+                        '--filename',
+                        dest='filename',
+                        action='store',
+                        help='File containing a list of bibcodes, one per line.')
     
     args = parser.parse_args()
     
@@ -234,6 +235,17 @@ if __name__ == '__main__':
     if args.kv:
         print_kvs()
 
+    if args.filename:
+        print 'creating cache pages for bibcodes in file'
+        with open(args.filename) as f:
+            # create solr query for each bibcode
+            query_template = '{"q": "bibcode:%s"}'
+            for line in f:
+                bibcode = line.strip()
+                if bibcode:
+                    query = query_template % bibcode
+                    harvest_by_query(query, tmpl=args.url_tmpl, queue=args.queue)
+                    
     if args.harvest_by_query:
         harvest_by_query(args.harvest_by_query, tmpl=args.url_tmpl, queue=args.queue)
         

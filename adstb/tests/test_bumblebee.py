@@ -24,6 +24,7 @@ class TestBumblebee(unittest.TestCase):
         u'esources': [u'EPRINT_HTML', u'EPRINT_PDF', u'PUB_HTML'],
         u'first_author': u'Ishak, Mustapha',
         u'issue': u'1',
+        u'identifier': ["2011arXiv1108.0669H", "2012ApJS..199...26H", "arXiv:1108.0669", "10.1088/0067-0049/199/2/26"],
         u'keyword': [u'Tests of relativistic gravity',
          u'Theories of gravity',
          u'Modified gravity',
@@ -36,6 +37,7 @@ class TestBumblebee(unittest.TestCase):
         u'links_data': [u'{"access": "open", "instances": "", "title": "", "type": "preprint", "url": "http://arxiv.org/abs/1806.10122"}',
          u'{"access": "open", "instances": "", "title": "", "type": "electr", "url": "https://doi.org/10.1007%2Fs41114-018-0017-4"}'],
         u'page': [u'1'],
+        u'page_range': u'41-59',
         u'property': [u'ESOURCE',
          u'ARTICLE',
          u'REFEREED',
@@ -62,7 +64,9 @@ class TestBumblebee(unittest.TestCase):
     x = bumblebee.build_meta_tags(response['response']['docs'][0])
     assert '<meta name="citation_doi" content="10.1007/s41114-018-0017-4" data-highwire="true">' in x
     assert '<meta name="og:description" content="We review recent' in x
-    
+    assert '<meta name="citation_lastpage" content="59"' in x
+    assert '<meta name="prism.endingPage" content="59"' in x
+    assert '<meta name="citation_arxiv_id" content="arXiv:1108.0669"' in x
     
     x = bumblebee.build_abstract(response['response']['docs'][0])
     assert 'Gravitational waves;' in x
@@ -71,6 +75,11 @@ class TestBumblebee(unittest.TestCase):
     assert 'We review recent developments' in x
     assert 'Texas at Dallas, Richardson' in x
     assert 'Ishak, Mustapha' in x
+
+    x = bumblebee._html_to_text(u'Renormalization of quark propagators from twisted-mass lattice QCD at N<SUB>f</SUB>=2')
+    assert x == u'Renormalization of quark propagators from twisted-mass lattice QCD at Nf=2'
+    x = bumblebee._html_to_text(u'Renormalization of quark propagators from twisted-mass lattice QCD at N&lt;SUB&gt;f&lt;/SUB&gt;=2')
+    assert x == u'Renormalization of quark propagators from twisted-mass lattice QCD at Nf=2'
     
 if __name__ == '__main__':
     unittest.main()    

@@ -9,6 +9,7 @@ from adstb import bumblebee
 from adsmsg import TurboBeeMsg
 import time
 from requests.exceptions import ConnectionError
+import traceback
 from urlparse import urlparse
 
 try:
@@ -38,6 +39,7 @@ def create_app(app_name='adstb',
 
 # valid url patterns in BBB
 bbb_paths = ('search', 'abs', 'user', 'index', 'execute-query')
+
 
 class ADSTurboBeeCelery(ADSCelery):
     
@@ -76,7 +78,6 @@ class ADSTurboBeeCelery(ADSCelery):
         # default, do nothing
         return url, url
                 
-        
     def harvest_webpage(self, message):
         """Loads a bumblebee page; it reuses js client. After the page
         has been loaded (all api requests) done, it will get the 
@@ -100,9 +101,7 @@ class ADSTurboBeeCelery(ADSCelery):
         message.target = pushstate_url
         message.set_value(html, message.ContentType.html)
         self._update_timestamps(message)
-        
         return True
-
 
     def _update_timestamps(self, message):
         # update tiemstamps
@@ -113,16 +112,20 @@ class ADSTurboBeeCelery(ADSCelery):
         if not message.created.seconds:
             message.created = message.updated
 
-
     def _load_url(self, url):
         try:
+            self.logger.debug('trying to load url {} at endpoint: {}'.format(url, self.conf.get('PUPPETEER_ENDPOINT')))
             r = requests.post(self.conf.get('PUPPETEER_ENDPOINT', 'http://localhost:3001/scrape'),
                 json=[url])
             r.raise_for_status()
+            self.logger.debug('success loaded page at {} with encoding {} and {}'.format(url, r.encoding, r))
             self._err_counter = 0
-            return r.json()[url]
-        except Exception, e:
+            j = r.json()
+            return j[url]
+        except Exception as e:
             self._err_counter += 1
+            self.logger.error('_load_url original error {}'.format(traceback.format_exc()))
+            self.logger.error('_load_url failed for url {} with {}'.format(url, str(e)))
             raise e
 
     def _massage_page(self, url, html):
@@ -152,7 +155,6 @@ class ADSTurboBeeCelery(ADSCelery):
 
         return html[0:head_end+1] + base + html[head_end+1:]
 
-
     def extract_bibcode(self, url_or_target):
         v = url_or_target
         if len(v) == 19:
@@ -162,7 +164,7 @@ class ADSTurboBeeCelery(ADSCelery):
             if len(parts) > 1:
                 return parts[1][0:19]
         else:
-            return None # can't find it
+            return None  # can't find it
         
     def update_store(self, message):
         """Delivers the message to the remote api side.
@@ -170,11 +172,21 @@ class ADSTurboBeeCelery(ADSCelery):
         :param: message - protobuf of TurboBeeMsg
         :return: qid - qid when operation succeeded
         """
+        self.logger.info('updating store with {}'.format(str(message)[:30]))
         r = self._post(self.conf.get('UPDATE_ENDPOINT'), message)
         r.raise_for_status()
         return r
-        
-        
+
+    def iscachable(target):
+        """Returns True if the passed target should be processed """
+        if target.endswith('.ico'):
+            # we don't cache icons
+            return False
+        if '/doi:' in target:
+            # abstract urls with a doi are not currently supported by bumblebee
+            return False
+        return True
+
     def _post(self, url, messages):
         if not isinstance(messages, list):
             messages = [messages]
@@ -186,14 +198,12 @@ class ADSTurboBeeCelery(ADSCelery):
             i += 1
         return self._client.post(url, files=out)
 
-
     def attempt_recovery(self, task, args=None, kwargs=None, einfo=None, retval=None):
         """Block if we get connection error"""
         
         if isinstance(retval, ConnectionError):
             self.logger.warn('Cannot establish connection with the crawler; blocking for %s seconds', 2**self._err_counter )
             time.sleep(2**self._err_counter)
-            
     
     def build_static_page(self, message):
         """Will assemble BBBB abstract page using a template
@@ -213,7 +223,7 @@ class ADSTurboBeeCelery(ADSCelery):
                 raise Exception('Cannot identify bibcode in %s' % url)
             
             # list of fields used by components that we care about
-            fl = '[citations],abstract,aff,author,bibcode,citation_count,comment,data,doi,esources,first_author,id,isbn,issn,issue,keyword,links_data,page,property,pub,pub_raw,pubdate,pubnote,read_count,title,volume,year'
+            fl = '[citations],abstract,aff,author,bibcode,citation_count,comment,data,doi,esources,first_author,id,identifier,isbn,issn,issue,keyword,links_data,page,page_range,property,pub,pub_raw,pubdate,pubnote,read_count,title,volume,year'
             
             # on api failure error will be thrown and that triggers celery re-try
             solr_response = self.search_api(q='identifier:"%s"' % bibcode, fl=fl)
@@ -226,7 +236,7 @@ class ADSTurboBeeCelery(ADSCelery):
                 self.logger.warn('API found too many docs for query identifier: %s; we are taking the first one' % bibcode)
                 
             data = solr_response['response']['docs'][0]
-            tags = bumblebee.build_meta_tags(data)
+            tags = bumblebee.build_meta_tags(data, self.conf)
             abstract = bumblebee.build_abstract(data, max_authors=self.conf.get('BBB_ABSTRACT_MAX_AUTHORS', 8), 
                                               gateway_url=self.conf.get('BBB_ABSTRACT_GATEWAY_URL', '/link_gateway/'))
             
@@ -238,14 +248,10 @@ class ADSTurboBeeCelery(ADSCelery):
             
             return True
 
-        
-
-        
     def search_api(self, **kwargs):
         r = self._client.get(self.conf.get('SEARCH_ENDPOINT'), params=kwargs)
         r.raise_for_status()
         return r.json()
-        
         
     def _parse_bbb_url(self, url):
         """Parses url and extracts domain information as well as bbb
@@ -269,15 +275,14 @@ class ADSTurboBeeCelery(ADSCelery):
             out['bibcode'] = None
         return out 
         
-        
     def get_bbb_template(self, target_url):
         """Finds the template that would work for a given url."""
+        target_url = target_url.strip()
         parts = self._parse_bbb_url(target_url)
         
         pagename = parts['pagename']
         domain = parts['domain']
         
-         
         if pagename == 'abs':
             if domain + ':' + pagename in self._tmpls:
                 return self._tmpls[domain + ':' + pagename]
@@ -289,50 +294,44 @@ class ADSTurboBeeCelery(ADSCelery):
         else:
             raise Exception('Unknown page type: %s' % pagename)
 
-
     def _retrieve_abstract_template(self, url):
         msg = TurboBeeMsg(target=url)
         i = 0
-        
+
         parts = self._parse_bbb_url(url)
         
         while not self.harvest_webpage(msg) and i < 3:
             self.logger.warn('Retrying to fetch: ' + url)
             i += 1
-        
+
         html = msg.get_value()
         html = html.decode('utf8')
-        
+
         # some basic checks
-        if 'data-widget="ShowAbstract"' not in html:
-            raise Exception("Failed to fetch a valid html page for: %s" % url)
-        
+        if 'data-widget="ShowAbstract"' not in html:            
+            raise Exception('Cannot process fetched page, or data-widget for {}'.format(url))
+        # TODO; find the sections and replace them with symbolic names {tags}, {abstract}....
         x = html.find('data-highwire')
         while x > 0:
             x -= 1
             if html[x] == '<':
                 break
-        
         end = html.find('data-highwire', x)
         while html.find('data-highwire', end+1) > 0:
             end = html.find('data-highwire', end+1)
 
-        
         while html[end] != '>':
             end += 1
-        
-            
         if end == -1 or x == 0:
             raise Exception("Cannot find tags section")
-        
         html = html[0:x] + '{{tags}}' + html[end+1:]
-        
+
         
         x = html.find('<article')
         end = html.find('</article')
         
         if x == -1 or end == -1:
-            raise Exception("Cannot find abstract section")
+            raise Exception('Cannot process fetched page, cannot find abstract section for {}'.format(url))
         
         while x < len(html) and x < end:
             x += 1
@@ -341,13 +340,29 @@ class ADSTurboBeeCelery(ADSCelery):
                 break
             
         if x > end:
-            raise Exception("Cannot find abstract section")
-        
+            raise Exception('Cannot process fetched page, cannot find abstract section for {}'.format(url))
+
         html = html[0:x] + '{{abstract}}' + html[end:]
-        
+
         if 'bibcode' in parts and parts['bibcode']:
             html = html.replace(parts['bibcode'], u'{{bibcode}}')
-        
+
+        # finally, cut out noscript warning that says javascript is required
+        x = html.find('id="noscriptmsg"')  # div id within noscript
+        if x > -1:
+            start = html.rfind('<noscript', 0, x)
+            end = html.find('</noscript>', start) + len('</noscript>')
+            if end > start:
+                html = html[:start] + html[end:]
+        # and the first noscript that includes a style, it hides the abstract div
+        x = html.find('<noscript>')
+        if x > -1:
+            offset = x + len('<noscript>')
+            if html[offset:].strip().startswith('<style>'):
+                end = html.find('</noscript>') + len('</noscript>')
+                if end > x:
+                    html = html[:x] + html[end:]
+
         return html
         
         

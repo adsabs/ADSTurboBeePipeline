@@ -4,7 +4,9 @@ import urllib
 from adsputils import get_date, parser
 import re
 import datetime
-
+from HTMLParser import HTMLParser
+import json
+import re
 
 # this is from widgets/meta_tags/template
 meta_tags_tmpl = u'''<meta name="og:type" content="article" data-highwire="true">
@@ -13,6 +15,8 @@ meta_tags_tmpl = u'''<meta name="og:type" content="article" data-highwire="true"
 <meta name="citation_title" content="{{title}}" data-highwire="true">
 <meta name="og:title" content="{{title}}" data-highwire="true">
 <meta name="twitter:title" content="{{title}}" data-highwire="true">
+<meta name="dc.title" content="{{title}}" data-highwire="true">
+<title>{{title}}</title> 
 
 <meta name="og:url" content="{{url}}" data-highwire="true">
 <meta name="twitter:url" content="{{url}}" data-highwire="true">
@@ -27,19 +31,29 @@ meta_tags_tmpl = u'''<meta name="og:type" content="article" data-highwire="true"
 {{/if}}
 {{#each author}}
 <meta name="citation_author" content="{{this.name}}" data-highwire="true">
-<meta xmlns="http://www.w3.org/1999/xhtml" name="citation_author_institution" content="{{this.aff}}" data-highwire="true">
+<meta name="dc.creator" content="{{this.name}}" data-highwire="true">
 {{/each}}
 {{#if page}}
 <meta name="citation_firstpage" content="{{page}}" data-highwire="true">
+<meta name="prism.startingPage" content="{{page}}" data-highwire="true">
+{{/if}}
+{{#if lastpage}}
+<meta name="citation_lastpage" content="{{lastpage}}" data-highwire="true">
+<meta name="prism.endingPage" content="{{lastpage}}" data-highwire="true">
 {{/if}}
 {{#if pubdate}}
 <meta name="citation_publication_date" content="{{pubdate}}" data-highwire="true">
+<meta name="citation_date" content="{{pubdate}}" data-highwire="true">
+<meta name="dc.date" content="{{pubdate}}" data-highwire="true">
 {{/if}}
 {{#if pub}}
 <meta name="citation_journal_title" content="{{pub}}" data-highwire="true">
+<meta name="dc.source" content="{{pub}}" data-highwire="true">
+<meta name="prism.publicationName" content="{{pub}}" data-highwire="true">
 {{/if}}
 {{#if volume}}
 <meta name="citation_volume" content="{{volume}}" data-highwire="true">
+<meta name="prism.volume" content="{{volume}}" data-highwire="true">
 {{/if}}
 {{#if issue}}
 <meta name="citation_issue" content="{{issue}}" data-highwire="true">
@@ -49,14 +63,18 @@ meta_tags_tmpl = u'''<meta name="og:type" content="article" data-highwire="true"
 {{/if}}
 {{#if issn}}
 <meta name="citation_issn" content="{{issn}}" data-highwire="true">
+<meta name="prism.issn" content="{{issn}} data-highwire="true"">
 {{/if}}
-{{#each keyword}}
-<meta name="citation_keywords" content="{{this}}" data-highwire="true">
-{{/each}}
+{{#if keyword}}
+<meta name="citation_keywords" content="{{keyword}}" data-highwire="true">
+{{/if}}
 {{#if pdfUrl}}
 <meta name="citation_pdf_url" content="{{pdfUrl}}" data-highwire="true">
-{{/if}}'''
-
+{{/if}}
+{{#if identifier}}
+<meta name="citation_arxiv_id" content="{{arxiv_id}}" data-highwire="true">
+{{/if}}
+<script>window.__PRERENDERED = true;</script>'''
 
 
 abstract_tmpl = u'''
@@ -196,7 +214,8 @@ meta_template = compiler.compile(meta_tags_tmpl)
 acompiler = Compiler()
 abstract_template = acompiler.compile(abstract_tmpl)
 
-def build_meta_tags(solrdoc):
+
+def build_meta_tags(solrdoc, conf={}):
     """Builds meta tags section that is inserted into HTML of a page;
     it receives a solr document which must have at least those
     fields:
@@ -212,7 +231,33 @@ def build_meta_tags(solrdoc):
         
     if 'doi' in data:
         data['doi'] = data['doi'][0]
+    if 'identifier' in data:
+        # expected format: ["2011arXiv1108.0669H", "2012ApJS..199...26H", "10.1088/0067-0049/199/2/26", "arXiv:1108.0669"]
+        for i in data['identifier']:
+            if i.startswith('arXiv'):
+                data['arxiv_id'] = i
+    if 'keyword' in data:
+        data['keyword'] = ', '.join(data['keyword'])
+    if 'page' in data:
+        data['page'] = data['page'][0]
+    if 'page_range' in data and '-' in data['page_range']:
+        # expected format: 41-59
+        data['lastpage'] = data['page_range'].split('-')[1]
+    if 'title' in data:
+        data['title'] = _html_to_text(data['title'][0])
     return ''.join(meta_template(data))
+
+
+htmlParser = HTMLParser()
+tag_re = re.compile(r'<[^>]+>')
+
+
+def _html_to_text(t):
+    """remove html tags and clean html encoded characters and return plain text string"""
+    t = htmlParser.unescape(t)
+    t = tag_re.sub('', t)
+    return t
+    
 
 def _format_date(d):
     i = 0
