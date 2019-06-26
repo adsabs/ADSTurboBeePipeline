@@ -241,6 +241,7 @@ class ADSTurboBeeCelery(ADSCelery):
                                               gateway_url=self.conf.get('BBB_ABSTRACT_GATEWAY_URL', '/link_gateway/'))
             
             html = abstract_tmpl.replace(u'{{tags}}', tags).replace(u'{{abstract}}', abstract)
+            html = html.replace(u'{{bibcode}}', bibcode.strip())
 
             message.target = pushstate_url
             message.set_value(html, message.ContentType.html)
