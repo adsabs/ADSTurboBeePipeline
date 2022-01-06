@@ -4,5 +4,5 @@ librabbitmq==1.6.1
 requests==2.13.0
 psycopg2==2.7.4
 adsmsg==1.0.5
-celery==4.1.1
+celery==5.2.2
 pybars3==0.9.6
